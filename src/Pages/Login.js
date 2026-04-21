@@ -45,8 +45,8 @@ function Login() {
     if (successPopup) {
       const timer = setTimeout(() => {
         setSuccessPopup(false);
-        navigate("/dashboard"); // 🚀 redirect
-      }, 2000);
+        navigate("/profile"); // 🚀 redirect
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
@@ -151,6 +151,7 @@ function Login() {
       const data = await res.json();
 
       if (res.status === 200 && data.success) {
+        localStorage.setItem("token", data.token); // ✅ FIX
         setSuccessPopup(true);
       } else {
         showToast(data.message || "Invalid OTP ❌");
