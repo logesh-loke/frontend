@@ -1,16 +1,60 @@
 import React from "react";
+import { Route, Routes } from "react-router-dom";
+
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
-import ForgotPassword from "./Pages/ForgotPassword";
-import { Route, Routes } from "react-router-dom";
+// import ForgotPassword from "./Pages/ForgotPassword";
+import Profile from "./Pages/Profile";
+
+import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
+import GuestRoute from "./Gaurd/Auth/GuestRoute";
 
 export default function App() {
   return (
     <div>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* 🔓 Guest Routes */}
+        <Route
+          path="/login"
+          element={
+            <GuestRoute>
+              <Login />
+            </GuestRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <GuestRoute>
+              <Register />
+            </GuestRoute>
+          }
+        />
+
+        {/* <Route
+          path="/forgot-password"
+          element={
+            <GuestRoute>
+              <ForgotPassword />
+            </GuestRoute>
+          }
+        /> */}
+
+        {/* 🔐 Protected Route */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🔁 Default Route */}
+        <Route path="*" element={<Login />} />
+
       </Routes>
     </div>
   );

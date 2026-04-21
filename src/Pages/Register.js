@@ -204,20 +204,46 @@ const Register = () => {
       </form>
 
       {/* ✅ CENTER POPUP */}
-      {showPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40">
-
-          <div className="bg-white w-80 p-6 rounded-2xl text-center shadow-xl">
-
-            <div className="mb-3 text-3xl">
-              {message.includes("Successfully") ? "✅" : "❌"}
+     {showPopup && (
+      <div className="fixed inset-0 flex items-center justify-center bg-black/40">
+      
+        <div className="bg-white w-80 p-6 rounded-2xl text-center shadow-xl animate-pop">
+        
+          {/* ICON */}
+          <div className="flex justify-center mb-3">
+            <div
+              className={`w-14 h-14 flex items-center justify-center rounded-full ${
+                message.toLowerCase().includes("success")
+                  ? "bg-green-100"
+                  : "bg-red-100"
+              }`}
+            >
+              <span
+                className={`text-2xl font-bold ${
+                  message.toLowerCase().includes("success")
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {message.toLowerCase().includes("success") ? "✔" : "✖"}
+              </span>
             </div>
-
-            <h2 className="font-semibold">{message}</h2>
-
           </div>
+              
+          {/* MESSAGE */}
+          <h2
+            className={`font-semibold text-lg ${
+              message.toLowerCase().includes("success")
+                ? "text-green-600"
+                : "text-red-600"
+            }`}
+          >
+            {message}
+          </h2>
+          
         </div>
-      )}
+      </div>
+    )}
 
     </div>
   );
