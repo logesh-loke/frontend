@@ -116,10 +116,10 @@ function Login() {
       return;
     }
 
-    if (!password) {
-      setFieldError("Password is required");
-      return;
-    }
+    // if (!password) {
+    //   setFieldError("Password is required");
+    //   return;
+    // }
 
     setFieldError("");
 
