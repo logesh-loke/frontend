@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
@@ -12,54 +12,148 @@ function Login() {
 
   const [step, setStep] = useState(1);
 
-  // ❌ popup
   const [message, setMessage] = useState("");
   const [showPopup, setShowPopup] = useState(false);
 
-  // ✅ errors
-  const [errors, setErrors] = useState({
-    identifier: "",
-    password: "",
-    otp: ""
-  });
-
-  // ✅ success
-  const [successPopup, setSuccessPopup] = useState(false);
-
-  // ⏱ timer
   const [timer, setTimer] = useState(59);
   const [canResend, setCanResend] = useState(false);
 
-  // 🔔 toast
   function showToast(msg) {
     setMessage(msg);
     setShowPopup(true);
-
-    setTimeout(() => {
-      setShowPopup(false);
-    }, );
+    setTimeout(() => setShowPopup(false), 2000);
   }
 
-  // ⏱ success + redirect
-  useEffect(() => {
-    if (successPopup) {
-      const timer = setTimeout(() => {
-        setSuccessPopup(false);
-        navigate("/profile"); // 🚀 redirect
-      }, 1000);
-
-      return () => clearTimeout(timer);
+  // ======================
+  // 🔐 PASSWORD LOGIN (COOKIE BASED)
+  // ======================
+  async function passwordLogin() {
+    if (!identifier || !password) {
+      showToast("Email/Phone and Password required ❌");
+      return;
     }
-  }, [successPopup, navigate]);
 
-  // ⏱ OTP countdown
-  useEffect(() => {
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStep(1);
+        navigate("/profile"); // cookie already set
+      } else {
+        showToast(data.message || "Login failed ❌");
+      }
+    } catch {
+      showToast("Server error ❌");
+    }
+  }
+
+  // ======================
+  // 📩 SEND OTP
+  // ======================
+  async function sendOtp() {
+    if (!identifier) {
+      showToast("Email or Phone required ❌");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // 🔥 important consistency
+        body: JSON.stringify({ identifier }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStep(2);
+        setTimer(59);
+        setCanResend(false);
+        showToast("OTP sent ✅");
+      } else {
+        showToast(data.message || "Failed ❌");
+      }
+    } catch {
+      showToast("Server error ❌");
+    }
+  }
+
+  // ======================
+  // 🔁 RESEND OTP
+  // ======================
+  async function resendOtp() {
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ identifier }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setTimer(59);
+        setCanResend(false);
+        showToast("OTP resent 🔁");
+      } else {
+        showToast(data.message);
+      }
+    } catch {
+      showToast("Server error ❌");
+    }
+  }
+
+  // ======================
+  // 🔐 VERIFY OTP LOGIN (COOKIE CREATED HERE)
+  // ======================
+  async function verifyOtpLogin() {
+    if (!otp) {
+      showToast("OTP required ❌");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        "http://localhost:8080/api/v1/verify-otp-login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ identifier, otp }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStep(1);
+        setOtp("");
+        navigate("/profile"); // cookie already stored
+      } else {
+        showToast(data.message || "Invalid OTP ❌");
+      }
+    } catch {
+      showToast("Server error ❌");
+    }
+  }
+
+  // ======================
+  // ⏱ OTP TIMER
+  // ======================
+  React.useEffect(() => {
     let interval;
 
     if (step === 2 && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimer((p) => p - 1), 1000);
     }
 
     if (timer === 0) {
@@ -70,329 +164,120 @@ function Login() {
     return () => clearInterval(interval);
   }, [timer, step]);
 
-  // 🔍 SEND OTP
-  async function verifyOtp() {
-    let newErrors = { identifier: "" };
-
-    if (!identifier) {
-      newErrors.identifier = "Email or Phone is required";
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({ ...errors, identifier: "" });
-
-    try {
-      const res = await fetch("http://localhost:8080/api/v1/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setStep(2);
-        setTimer(59);
-        setCanResend(false);
-        showToast("OTP sent successfully ✅");
-      } else {
-        showToast(data.message || "User not found ❌");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Server error ❌");
-    }
-  }
-
-  // 🔁 RESEND OTP
-  async function resendOtp() {
-    try {
-      const res = await fetch("http://localhost:8080/api/v1/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setTimer(59);
-        setCanResend(false);
-        showToast("OTP resent 🔁");
-      } else {
-        showToast(data.message || "Failed ❌");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Server error ❌");
-    }
-  }
-
-  // 🔐 VERIFY OTP LOGIN
-  async function verifyOtpLogin() {
-    let newErrors = { otp: "" };
-
-    if (!otp) {
-      newErrors.otp = "OTP is required";
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({ ...errors, otp: "" });
-
-    try {
-      const res = await fetch("http://localhost:8080/api/v1/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, otp }),
-      });
-
-      const data = await res.json();
-
-      if (res.status === 200 && data.success) {
-        localStorage.setItem("token", data.token); // ✅ FIX
-        setSuccessPopup(true);
-      } else {
-        showToast(data.message || "Invalid OTP ❌");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Server error ❌");
-    }
-  }
-
-  // 🔐 PASSWORD LOGIN
-  async function passwordLogin() {
-    let newErrors = { identifier: "", password: "" };
-
-    if (!identifier) newErrors.identifier = "Email or Phone Required";
-    if (!password) newErrors.password = "Password Required";
-
-    if (newErrors.identifier || newErrors.password) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({ identifier: "", password: "" });
-
-    try {
-      const res = await fetch("http://localhost:8080/api/v1/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem("token", data.token);
-        setSuccessPopup(true);
-      } else {
-        showToast(data.message || "Login failed ❌");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Server error ❌");
-    }
-  }
-
   return (
-  <div className="flex items-center justify-center min-h-screen bg-gray-200">
+    <div className="flex items-center justify-center min-h-screen bg-gray-200">
 
-    <div className="bg-white p-8 rounded-2xl shadow-lg w-96 relative">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-96 relative">
 
-      <h2 className="text-2xl font-bold text-center mb-4">
-        Login
-      </h2>
+        <h2 className="text-2xl font-bold text-center mb-4">Login</h2>
 
-      {/* TOGGLE */}
-      <div className="flex mb-4 rounded-xl overflow-hidden">
-        <button
-          onClick={() => setMode("password")}
-          className={`w-1/2 p-2 ${mode==="password" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-        >
-          Password
-        </button>
-
-        <button
-          onClick={() => setMode("otp")}
-          className={`w-1/2 p-2 ${mode==="otp" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-        >
-          OTP
-        </button>
-      </div>
-
-      {/* IDENTIFIER */}
-      <label className="text-sm font-semibold ml-1">
-        Email or Phone
-      </label>
-
-      <input
-        className={`border rounded-xl px-4 py-2 w-full mb-1 ${errors.identifier?"border-red-500":""}`}
-        value={identifier}
-        onChange={(e)=>{
-          setIdentifier(e.target.value);
-          setErrors({...errors,identifier:""});
-        }}
-        placeholder="Enter email or phone"
-      />
-
-      {errors.identifier && (
-        <p className="text-red-500 text-sm mb-2 ml-1">
-          {errors.identifier}
-        </p>
-      )}
-
-      {/* PASSWORD LOGIN */}
-      {mode==="password" && (
-        <>
-          <label className="text-sm font-semibold ml-1">
+        {/* TOGGLE */}
+        <div className="flex mb-4 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setMode("password")}
+            className={`w-1/2 p-2 ${
+              mode === "password" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+          >
             Password
-          </label>
-
-          <input
-            type="password"
-            className={`border rounded-xl px-4 py-2 w-full mb-1 ${errors.password?"border-red-500":""}`}
-            value={password}
-            onChange={(e)=>{
-              setPassword(e.target.value);
-              setErrors({...errors,password:""});
-            }}
-            placeholder="Enter password"
-          />
-
-          {errors.password && (
-            <p className="text-red-500 text-sm mb-2 ml-1">
-              {errors.password}
-            </p>
-          )}
+          </button>
 
           <button
-            onClick={passwordLogin}
-            className="w-full bg-blue-600 text-white py-2 rounded-xl mt-2 hover:bg-blue-700 transition"
+            onClick={() => setMode("otp")}
+            className={`w-1/2 p-2 ${
+              mode === "otp" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
           >
-            Login
+            OTP
           </button>
-        </>
-      )}
+        </div>
 
-      {/* OTP LOGIN */}
-      {mode==="otp" && (
-        <>
-          {step===1 && (
+        {/* IDENTIFIER */}
+        <input
+          className="border rounded-xl px-4 py-2 w-full mb-2"
+          placeholder="Email or Phone"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+        />
+
+        {/* PASSWORD */}
+        {mode === "password" && (
+          <>
+            <input
+              type="password"
+              className="border rounded-xl px-4 py-2 w-full mb-2"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
             <button
-              onClick={verifyOtp}
-              className="w-full bg-green-600 text-white py-2 rounded-xl mb-2 hover:bg-green-700 transition"
+              onClick={passwordLogin}
+              className="w-full bg-blue-600 text-white py-2 rounded-xl"
             >
-              Send OTP
+              Login
             </button>
-          )}
+          </>
+        )}
 
-          {step===2 && (
-            <>
-              <label className="text-sm font-semibold ml-1">
-                OTP
-              </label>
-
-              <input
-                className={`border rounded-xl px-4 py-2 w-full mb-1 ${errors.otp?"border-red-500":""}`}
-                value={otp}
-                onChange={(e)=>{
-                  setOtp(e.target.value);
-                  setErrors({...errors,otp:""});
-                }}
-                placeholder="Enter OTP"
-              />
-
-              {errors.otp && (
-                <p className="text-red-500 text-sm mb-2 ml-1">
-                  {errors.otp}
-                </p>
-              )}
-
+        {/* OTP */}
+        {mode === "otp" && (
+          <>
+            {step === 1 && (
               <button
-                onClick={verifyOtpLogin}
-                disabled={!otp}
-                className="w-full bg-blue-600 text-white py-2 rounded-xl mt-2 disabled:bg-gray-400 hover:bg-blue-700 transition"
+                onClick={sendOtp}
+                className="w-full bg-green-600 text-white py-2 rounded-xl"
               >
-                Verify OTP & Login
+                Send OTP
               </button>
+            )}
 
-              {/* TIMER */}
-              <div className="flex justify-between mt-2 text-sm">
-                {!canResend ? (
-                  <p className="text-gray-500">
-                    Resend in {timer}s
-                  </p>
-                ) : (
-                  <button
-                    onClick={resendOtp}
-                    className="text-blue-600 font-semibold"
-                  >
-                    Resend OTP
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </>
-      )}
+            {step === 2 && (
+              <>
+                <input
+                  className="border rounded-xl px-4 py-2 w-full mb-2"
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
 
-      <p className="text-sm mt-3 text-center">
-        Don’t have an account?{" "}
-        <Link to="/register" className="text-blue-500 font-semibold">
-          Register
-        </Link>
-      </p>
+                <button
+                  onClick={verifyOtpLogin}
+                  className="w-full bg-blue-600 text-white py-2 rounded-xl"
+                >
+                  Verify OTP
+                </button>
 
-      {/* ❌ ERROR POPUP (inside card) */}
-      {showPopup && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl">
-          
-          <div className="bg-white px-6 py-5 rounded-2xl shadow-xl text-center animate-pop w-64">
-            
-            {/* ❌ ICON */}
-            <div className="flex items-center justify-center mb-3">
-              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100">
-                <span className="text-red-600 text-2xl font-bold">✖</span>
-              </div>
-            </div>
-            
-            {/* MESSAGE */}
-            <p className="text-red-600 font-semibold">
+                <div className="text-sm mt-2">
+                  {!canResend ? (
+                    <p>Resend in {timer}s</p>
+                  ) : (
+                    <button onClick={resendOtp} className="text-blue-600">
+                      Resend OTP
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        <p className="text-sm mt-3 text-center">
+          No account? <Link to="/register" className="text-blue-500">Register</Link>
+        </p>
+
+        {/* POPUP */}
+        {showPopup && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <div className="bg-white p-5 rounded-xl text-red-600 font-bold">
               {message}
-            </p>
-            
-          </div>
-            
-        </div>
-      )}
-
-      {/* ✅ SUCCESS POPUP (inside card with animation) */}
-     {/* ✅ SUCCESS POPUP */}
-      {successPopup && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl">
-          <div className="bg-white px-6 py-5 rounded-2xl shadow-xl text-center animate-pop w-64">
-      
-            {/* ✔️ ICON */}
-            <div className="flex items-center justify-center mb-3">
-              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-green-100">
-                <span className="text-green-600 text-2xl font-bold">✔</span>
-              </div>
             </div>
-      
-            {/* MESSAGE */}
-            <p className="text-green-600 font-bold text-lg">
-              Login Successful
-            </p>
-      
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
     </div>
-  </div>
-);
+  );
 }
 
 export default Login;
