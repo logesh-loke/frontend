@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-export default function ProtectedRoute({ children }) {
+export default function GuestRoute({ children }) {
   const [loading, setLoading] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
 
@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }) {
           credentials: "include",
         });
 
-        if (res.status === 200) {
+        if (res.ok) {
           setIsAuth(true);
         } else {
           setIsAuth(false);
@@ -27,7 +27,7 @@ export default function ProtectedRoute({ children }) {
     checkAuth();
   }, []);
 
-  if (loading) return <div>Checking auth...</div>;
+  if (loading) return <h3>Loading...</h3>;
 
-  return isAuth ? children : <Navigate to="/login" replace />;
+  return isAuth ? <Navigate to="/profile" replace /> : children;
 }

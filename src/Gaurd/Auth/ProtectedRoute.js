@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 export default function ProtectedRoute({ children }) {
@@ -9,23 +9,16 @@ export default function ProtectedRoute({ children }) {
     async function checkAuth() {
       try {
         const res = await fetch("http://localhost:8080/api/v1/profile", {
-          method: "GET",
           credentials: "include",
         });
 
-        const data = await res.json();
-
-        console.log("AUTH CHECK:", res.status, data);
-
-        // ✅ Strong validation
-        if (res.ok && (data.success || data.user || data.data)) {
+        if (res.ok) {
           setIsAuth(true);
         } else {
           setIsAuth(false);
         }
-
       } catch (err) {
-        console.log("AUTH ERROR:", err);
+        console.error("Auth check error:", err);
         setIsAuth(false);
       } finally {
         setLoading(false);
@@ -35,15 +28,7 @@ export default function ProtectedRoute({ children }) {
     checkAuth();
   }, []);
 
-  // ⏳ Better loader
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        Checking authentication...
-      </div>
-    );
-  }
+  if (loading) return <h3>Checking auth...</h3>;
 
-  // 🔐 Final decision
   return isAuth ? children : <Navigate to="/login" replace />;
 }

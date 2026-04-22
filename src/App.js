@@ -12,7 +12,6 @@ export default function App() {
   return (
     <Routes>
 
-      {/* 🔓 Guest Routes */}
       <Route
         path="/login"
         element={
@@ -31,7 +30,6 @@ export default function App() {
         }
       />
 
-      {/* 🔐 Protected Route */}
       <Route
         path="/profile"
         element={
@@ -41,15 +39,7 @@ export default function App() {
         }
       />
 
-      {/* 🔁 Default Route */}
-      <Route
-        path="*"
-        element={
-          <GuestRoute>
-            <Login />
-          </GuestRoute>
-        }
-      />
+      <Route path="*" element={<Login />} />
 
     </Routes>
   );
