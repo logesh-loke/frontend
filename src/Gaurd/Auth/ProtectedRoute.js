@@ -1,13 +1,34 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
+export default function ProtectedRoute({ children }) {
+  const [loading, setLoading] = useState(true);
+  const [isAuth, setIsAuth] = useState(false);
 
-  if (!token) {
-    return <Navigate to="/" replace />; // ❌ not logged → login page
-  }
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("http://localhost:8080/api/v1/profile", {
+          credentials: "include",
+        });
 
-  return children; // ✅ logged → allow
+        if (res.ok) {
+          setIsAuth(true);
+        } else {
+          setIsAuth(false);
+        }
+      } catch (err) {
+        console.error("Auth check error:", err);
+        setIsAuth(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    checkAuth();
+  }, []);
+
+  if (loading) return <h3>Checking auth...</h3>;
+
+  return isAuth ? children : <Navigate to="/login" replace />;
 }
-
-export default ProtectedRoute;

@@ -1,13 +1,33 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-function GuestRoute({ children }) {
-  const token = localStorage.getItem("token");
+export default function GuestRoute({ children }) {
+  const [loading, setLoading] = useState(true);
+  const [isAuth, setIsAuth] = useState(false);
 
-  if (token) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("http://localhost:8080/api/v1/profile", {
+          credentials: "include",
+        });
 
-  return children;
+        if (res.ok) {
+          setIsAuth(true);
+        } else {
+          setIsAuth(false);
+        }
+      } catch {
+        setIsAuth(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    checkAuth();
+  }, []);
+
+  if (loading) return <h3>Loading...</h3>;
+
+  return isAuth ? <Navigate to="/profile" replace /> : children;
 }
-
-export default GuestRoute;
