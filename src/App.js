@@ -4,19 +4,16 @@ import { Routes, Route } from "react-router-dom";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import Profile from "./Pages/Profile";
-
-<<<<<<< HEAD
-import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
-import GuestRoute from "./Gaurd/Auth/GuestRoute";
 import ForgotPassword from "./Pages/ForgotPassword";
 
-=======
->>>>>>> origin/master
+import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
+import GuestRoute from "./Gaurd/Auth/GuestRoute";
+
 export default function App() {
   return (
     <Routes>
 
-<<<<<<< HEAD
+      {/* ✅ Guest Routes */}
       <Route
         path="/login"
         element={
@@ -27,7 +24,7 @@ export default function App() {
       />
 
       <Route
-        path="/ForgotPassword"
+        path="/forgotpassword"
         element={
           <GuestRoute>
             <ForgotPassword />
@@ -44,6 +41,7 @@ export default function App() {
         }
       />
 
+      {/* ✅ Protected Route */}
       <Route
         path="/profile"
         element={
@@ -53,16 +51,9 @@ export default function App() {
         }
       />
 
+      {/* ✅ Default Route */}
       <Route path="*" element={<Login />} />
 
-=======
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/profile" element={<Profile />} />
-
-      <Route path="*" element={<Login />} />
-
->>>>>>> origin/master
     </Routes>
   );
 }
