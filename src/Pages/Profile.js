@@ -12,35 +12,32 @@ function Profile() {
       try {
         const res = await fetch("http://localhost:8080/api/v1/profile", {
           method: "GET",
-          credentials: "include", // 🔥 IMPORTANT
+          credentials: "include",
         });
 
         const data = await res.json();
 
         console.log("PROFILE RESPONSE:", data);
 
-        // ✅ Accept both formats safely
         const userData = data.data || data.user;
 
         if (res.ok && data.success && userData) {
           setUser(userData);
         } else {
-          navigate("/login");
+          setUser(null);
         }
-
       } catch (err) {
         console.log("PROFILE ERROR:", err);
-        navigate("/login");
+        setUser(null);
       } finally {
         setLoading(false);
       }
     }
 
     fetchProfile();
-  }, [navigate]);
+  }, []);
 
-
-  // 🔐 LOGOUT (COOKIE CLEAR)
+  // 🔐 Logout
   const logout = async () => {
     try {
       await fetch("http://localhost:8080/api/v1/logout", {
@@ -54,52 +51,55 @@ function Profile() {
     }
   };
 
-  // ======================
-  // ⏳ LOADING STATE
-  // ======================
+  // ⏳ Loading UI
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center text-lg font-semibold animate-pulse">
         Loading profile...
       </div>
     );
   }
 
-  // ======================
-  // ❌ NO USER
-  // ======================
+  // ❌ No user
   if (!user) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        Session expired. Please login again.
+      <div className="h-screen flex flex-col items-center justify-center">
+        <h2 className="text-xl font-bold text-red-500">
+          Session expired
+        </h2>
+
+        <button
+          onClick={() => navigate("/login")}
+          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg"
+        >
+          Go to Login
+        </button>
       </div>
     );
   }
 
-  // ======================
-  // ✅ PROFILE UI
-  // ======================
+  // ✅ Profile UI
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-gray-200">
 
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-96">
+      <div className="bg-white p-8 rounded-3xl shadow-2xl w-96 transition hover:shadow-3xl">
 
         <h2 className="text-2xl font-bold text-center mb-6">
-          User Profile
+          User Profile 👤
         </h2>
 
-        <div className="space-y-3">
-          <p><b>ID:</b> {user.id || user._id}</p>
-          <p><b>First Name:</b> {user.firstname}</p>
-          <p><b>Last Name:</b> {user.lastname}</p>
-          <p><b>Email:</b> {user.email}</p>
-          <p><b>Contact:</b> {user.contactno}</p>
-          <p><b>Address:</b> {user.address}</p>
+        <div className="space-y-3 text-gray-700">
+          <p><b>ID:</b> {user.id || user._id || "-"}</p>
+          <p><b>First Name:</b> {user.firstname || "-"}</p>
+          <p><b>Last Name:</b> {user.lastname || "-"}</p>
+          <p><b>Email:</b> {user.email || "-"}</p>
+          <p><b>Contact:</b> {user.contactno || "-"}</p>
+          <p><b>Address:</b> {user.address || "-"}</p>
         </div>
 
         <button
           onClick={logout}
-          className="mt-6 w-full bg-red-500 text-white py-2 rounded-lg"
+          className="mt-6 w-full bg-red-500 hover:bg-red-600 transition text-white py-2 rounded-lg shadow-md"
         >
           Logout
         </button>

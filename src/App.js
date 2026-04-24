@@ -7,6 +7,7 @@ import Profile from "./Pages/Profile";
 
 import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
 import GuestRoute from "./Gaurd/Auth/GuestRoute";
+import ForgotPassword from "./Pages/ForgotPassword";
 
 export default function App() {
   return (
@@ -17,6 +18,15 @@ export default function App() {
         element={
           <GuestRoute>
             <Login />
+          </GuestRoute>
+        }
+      />
+
+      <Route
+        path="/ForgotPassword"
+        element={
+          <GuestRoute>
+            <ForgotPassword />
           </GuestRoute>
         }
       />
