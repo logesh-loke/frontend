@@ -289,7 +289,7 @@ function ForgotPassword() {
               </h2>
               <p className="text-gray-600 mt-3 text-sm">
                 Redirecting to your profile...
-              </p>
+              </p> 
             </div>
           </div>
         )}
