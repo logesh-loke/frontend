@@ -6,18 +6,27 @@ export default function GuestRoute({ children }) {
   const [isAuth, setIsAuth] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setIsAuth(false);
+      setLoading(false);
+      return;
+    }
+
     async function checkAuth() {
       try {
         const res = await fetch("http://localhost:8080/api/v1/profile", {
-          credentials: "include",
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
 
-        if (res.ok) {
-          setIsAuth(true);
-        } else {
-          setIsAuth(false);
-        }
-      } catch {
+        setIsAuth(res.ok);
+      } catch (err) {
+        console.log("GuestRoute error:", err);
         setIsAuth(false);
       } finally {
         setLoading(false);

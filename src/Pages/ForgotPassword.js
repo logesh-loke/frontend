@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import bg from "../Assets/bg-img.jpg";
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -22,16 +23,25 @@ function ForgotPassword() {
 
   const [success, setSuccess] = useState(false);
 
+  // 🔥 loading states
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
   const BASE = "http://localhost:8080";
 
   // ================= SEND OTP =================
-  async function sendOtp() {
+  async function sendOtp(retry = 0) {
+    if (otpLoading) return;
+
     if (!email.trim()) {
-      setErrors((prev) => ({ ...prev, email: "Email or Phone required" }));
+      setErrors((p) => ({ ...p, email: "Email or Phone required" }));
       return;
     }
 
     try {
+      setOtpLoading(true);
+
       const res = await fetch(`${BASE}/api/v1/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,30 +50,41 @@ function ForgotPassword() {
 
       const data = await res.json();
 
-      if (res.ok) {
-        setStep(2);
-        setTimer(59);
-        setCanResend(false);
-        setErrors((prev) => ({ ...prev, email: "", otp: "" }));
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          email: data.message || "OTP send failed",
-        }));
+      if (!res.ok) throw new Error(data.message);
+
+      setStep(2);
+      setTimer(59);
+      setCanResend(false);
+      setErrors({ email: "", otp: "", password: "" });
+
+    } catch (err) {
+      console.log("OTP ERROR:", err);
+
+      // 🔁 retry max 2 times
+      if (retry < 2) {
+        await new Promise((r) => setTimeout(r, 1000));
+        return sendOtp(retry + 1);
       }
-    } catch {
-      setErrors((prev) => ({ ...prev, email: "Server error ❌" }));
+
+      setErrors((p) => ({ ...p, email: "Failed to send OTP" }));
+
+    } finally {
+      setOtpLoading(false);
     }
   }
 
   // ================= VERIFY OTP =================
   async function verifyOtp() {
+    if (verifyLoading) return;
+
     if (!otp.trim()) {
-      setErrors((prev) => ({ ...prev, otp: "OTP required" }));
+      setErrors((p) => ({ ...p, otp: "OTP required" }));
       return;
     }
 
     try {
+      setVerifyLoading(true);
+
       const res = await fetch(`${BASE}/api/v1/verify-forgot-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,40 +94,45 @@ function ForgotPassword() {
       const data = await res.json();
 
       if (!res.ok) {
-        setErrors((prev) => ({
-          ...prev,
+        setErrors((p) => ({
+          ...p,
           otp: data.message || "Wrong OTP",
         }));
         return;
       }
 
       setStep(3);
-      setErrors((prev) => ({ ...prev, otp: "" }));
 
     } catch {
-      setErrors((prev) => ({ ...prev, otp: "Server error ❌" }));
+      setErrors((p) => ({ ...p, otp: "Server error ❌" }));
+    } finally {
+      setVerifyLoading(false);
     }
   }
 
   // ================= RESET PASSWORD =================
   async function resetPassword() {
+    if (resetLoading) return;
+
     if (!newPassword.trim()) {
-      setErrors((prev) => ({
-        ...prev,
+      setErrors((p) => ({
+        ...p,
         password: "Enter new password",
       }));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrors((prev) => ({
-        ...prev,
+      setErrors((p) => ({
+        ...p,
         password: "Passwords do not match",
       }));
       return;
     }
 
     try {
+      setResetLoading(true);
+
       const res = await fetch(`${BASE}/api/v1/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,19 +145,23 @@ function ForgotPassword() {
 
       const data = await res.json();
 
-      if (res.ok) {
-        setSuccess(true);
-      } else {
-        setErrors((prev) => ({
-          ...prev,
+      if (!res.ok) {
+        setErrors((p) => ({
+          ...p,
           password: data.message || "Reset failed",
         }));
+        return;
       }
+
+      setSuccess(true);
+
     } catch {
-      setErrors((prev) => ({
-        ...prev,
+      setErrors((p) => ({
+        ...p,
         password: "Server error ❌",
       }));
+    } finally {
+      setResetLoading(false);
     }
   }
 
@@ -151,17 +181,23 @@ function ForgotPassword() {
   // ================= REDIRECT =================
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => {
-        navigate("/profile");
-      }, 1000);
+      const t = setTimeout(() => {
+        navigate("/login"); // ✅ go back to login
+      }, 1200);
 
-      return () => clearTimeout(timer);
+      return () => clearTimeout(t);
     }
   }, [success, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-gray-200">
-      
+    <div
+      className="flex items-center justify-center min-h-screen"
+      style={{
+        backgroundImage: `url(${bg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <div className="bg-white p-8 rounded-3xl shadow-2xl w-96 relative">
 
         <h2 className="text-2xl font-bold text-center mb-5">
@@ -171,28 +207,29 @@ function ForgotPassword() {
         {/* STEP 1 */}
         {step === 1 && (
           <>
-            <label>Email or phone </label>
+            <label className="text-sm"> Email or Phone </label>
             <input
               placeholder="Email or Phone"
               className="border px-4 py-2 w-full rounded-xl mb-2"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                setErrors((prev) => ({ ...prev, email: "" }));
+                setErrors((p) => ({ ...p, email: "" }));
               }}
             />
 
             {errors.email && (
-              <p className="text-red-500 text-sm mb-2">
-                {errors.email}
-              </p>
+              <p className="text-red-500 text-sm mb-2">{errors.email}</p>
             )}
 
             <button
-              onClick={sendOtp}
-              className="w-full bg-blue-600 text-white py-2 rounded-xl"
+              onClick={() => sendOtp()}
+              disabled={otpLoading}
+              className={`w-full py-2 rounded-xl text-white ${
+                otpLoading ? "bg-gray-400" : "bg-blue-600"
+              }`}
             >
-              Send OTP
+              {otpLoading ? "Sending..." : "Send OTP"}
             </button>
           </>
         )}
@@ -200,32 +237,29 @@ function ForgotPassword() {
         {/* STEP 2 */}
         {step === 2 && (
           <>
-          <label>Otp</label>
+             <label className="text-sm"> Otp </label>
             <input
               placeholder="Enter OTP"
               className="border px-4 py-2 w-full rounded-xl mb-2"
               value={otp}
               onChange={(e) => {
                 setOtp(e.target.value);
-                setErrors((prev) => ({ ...prev, otp: "" }));
+                setErrors((p) => ({ ...p, otp: "" }));
               }}
             />
 
             {errors.otp && (
-              <p className="text-red-500 text-sm mb-2">
-                {errors.otp}
-              </p>
+              <p className="text-red-500 text-sm mb-2">{errors.otp}</p>
             )}
 
             <div className="flex justify-between text-sm mb-3">
-              <span>
-                {timer > 0
-                  ? `00:${timer.toString().padStart(2, "0")}`
-                  : ""}
-              </span>
+              <span>{timer > 0 ? `00:${timer}` : ""}</span>
 
               {canResend && (
-                <button onClick={sendOtp} className="text-blue-600">
+                <button
+                  onClick={() => sendOtp()}
+                  className="text-blue-600"
+                >
                   Resend OTP
                 </button>
               )}
@@ -233,9 +267,12 @@ function ForgotPassword() {
 
             <button
               onClick={verifyOtp}
-              className="w-full bg-green-600 text-white py-2 rounded-xl"
+              disabled={verifyLoading}
+              className={`w-full py-2 rounded-xl text-white ${
+                verifyLoading ? "bg-gray-400" : "bg-green-600"
+              }`}
             >
-              Verify OTP
+              {verifyLoading ? "Verifying..." : "Verify OTP"}
             </button>
           </>
         )}
@@ -243,64 +280,55 @@ function ForgotPassword() {
         {/* STEP 3 */}
         {step === 3 && (
           <>
+           <label className="text-sm">New Password</label>
             <input
               type="password"
               placeholder="New Password"
               className="border px-4 py-2 w-full rounded-xl mb-2"
               value={newPassword}
-              onChange={(e) => {
-                setNewPassword(e.target.value);
-                setErrors((prev) => ({ ...prev, password: "" }));
-              }}
+              onChange={(e) => setNewPassword(e.target.value)}
             />
-
+             <label className="text-sm"> Confirm password </label>
             <input
               type="password"
               placeholder="Confirm Password"
               className="border px-4 py-2 w-full rounded-xl mb-2"
               value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                setErrors((prev) => ({ ...prev, password: "" }));
-              }}
+              onChange={(e) => setConfirmPassword(e.target.value)}
             />
 
             {errors.password && (
-              <p className="text-red-500 text-sm mb-2">
-                {errors.password}
-              </p>
+              <p className="text-red-500 text-sm mb-2">{errors.password}</p>
             )}
 
             <button
               onClick={resetPassword}
-              className="w-full bg-blue-600 text-white py-2 rounded-xl"
+              disabled={resetLoading}
+              className={`w-full py-2 rounded-xl text-white ${
+                resetLoading ? "bg-gray-400" : "bg-blue-600"
+              }`}
             >
-              Reset Password
+              {resetLoading ? "Updating..." : "Reset Password"}
             </button>
           </>
         )}
 
-        {/* SUCCESS POPUP */}
+        {/* SUCCESS */}
         {success && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white px-10 py-8 rounded-2xl text-center shadow-2xl animate-fadeIn">
-              <h2 className="text-2xl font-bold text-green-600">
-                Password Updated Successfully ✅
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div className="bg-white px-8 py-6 rounded-xl text-center">
+              <h2 className="text-green-600 font-bold text-xl">
+                Password Updated ✅
               </h2>
-              <p className="text-gray-600 mt-3 text-sm">
-                Redirecting to your profile...
-              </p> 
             </div>
           </div>
         )}
 
-        {/* BACK */}
         <p className="text-center mt-4 text-sm">
-          <Link to="/" className="text-blue-600">
+          <Link to="/login" className="text-blue-600">
             Back to Login
           </Link>
         </p>
-
       </div>
     </div>
   );

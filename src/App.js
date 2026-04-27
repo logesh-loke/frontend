@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
@@ -13,21 +13,12 @@ export default function App() {
   return (
     <Routes>
 
-      {/* ✅ Guest Routes */}
+      {/* 🔓 Guest Routes */}
       <Route
         path="/login"
         element={
           <GuestRoute>
             <Login />
-          </GuestRoute>
-        }
-      />
-
-      <Route
-        path="/forgotpassword"
-        element={
-          <GuestRoute>
-            <ForgotPassword />
           </GuestRoute>
         }
       />
@@ -41,7 +32,16 @@ export default function App() {
         }
       />
 
-      {/* ✅ Protected Route */}
+      <Route
+        path="/forgotpassword"
+        element={
+          <GuestRoute>
+            <ForgotPassword />
+          </GuestRoute>
+        }
+      />
+
+      {/* 🔒 Protected Route */}
       <Route
         path="/profile"
         element={
@@ -51,9 +51,10 @@ export default function App() {
         }
       />
 
-      {/* ✅ Default Route */}
-      <Route path="*" element={<Login />} />
+      {/* ✅ Default redirect (FIXED) */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
+      {/* ❌ fallback removed */}
     </Routes>
   );
 }

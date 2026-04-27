@@ -8,54 +8,69 @@ function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchProfile() {
+    function loadUserFromStorage() {
+      const token = localStorage.getItem("token");
+      const userData = localStorage.getItem("user");
+
+      // ❌ No token → redirect
+      if (!token) {
+        setLoading(false);
+        navigate("/login");
+        return;
+      }
+
       try {
-        const res = await fetch("http://localhost:8080/api/v1/profile", {
-          method: "GET",
-          credentials: "include", // ✅ only once
-        });
-
-        const data = await res.json();
-        console.log("PROFILE RESPONSE:", data);
-
-        const userData = data.data || data.user;
-
-        if (res.ok && data.success && userData) {
-          setUser(userData);
+        // ✅ use cached user (fast, no API call)
+        if (userData) {
+          setUser(JSON.parse(userData));
         } else {
-          setUser(null);
-          navigate("/login");
-        }
+          // fallback: optional API call
+          fetch("http://localhost:8080/api/v1/profile", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              const userInfo = data?.data || data?.user;
 
+              if (userInfo) {
+                setUser(userInfo);
+                localStorage.setItem("user", JSON.stringify(userInfo));
+              } else {
+                localStorage.removeItem("token");
+                navigate("/login");
+              }
+            })
+            .catch(() => {
+              localStorage.removeItem("token");
+              navigate("/login");
+            });
+        }
       } catch (err) {
-        console.log("PROFILE ERROR:", err);
+        console.log("Error reading user:", err);
         navigate("/login");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchProfile();
+    loadUserFromStorage();
   }, [navigate]);
 
   // 🔐 LOGOUT
-  const logout = async () => {
-    try {
-      await fetch("http://localhost:8080/api/v1/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      navigate("/login");
-    } catch (err) {
-      console.log("LOGOUT ERROR:", err);
-    }
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   // ⏳ Loading
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center text-lg font-semibold animate-pulse">
+      <div className="h-screen flex items-center justify-center text-lg font-semibold">
         Loading profile...
       </div>
     );
@@ -79,11 +94,10 @@ function Profile() {
     );
   }
 
-  // ✅ Profile UI
+  // ✅ UI
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-gray-200">
-
-      <div className="bg-white p-8 rounded-3xl shadow-2xl w-96 transition hover:shadow-3xl">
+      <div className="bg-white p-8 rounded-3xl shadow-2xl w-96">
 
         <h2 className="text-2xl font-bold text-center mb-6">
           User Profile 👤
@@ -100,7 +114,7 @@ function Profile() {
 
         <button
           onClick={logout}
-          className="mt-6 w-full bg-red-500 hover:bg-red-600 transition text-white py-2 rounded-lg shadow-md"
+          className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg"
         >
           Logout
         </button>
