@@ -35,7 +35,7 @@ function ForgotPassword() {
     if (otpLoading) return;
 
     if (!email.trim()) {
-      setErrors((p) => ({ ...p, email: "Email or Phone required" }));
+      setErrors((p) => ({ ...p, email: "Email or Phone required"}));
       return;
     }
 
@@ -315,13 +315,42 @@ function ForgotPassword() {
 
         {/* SUCCESS */}
         {success && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <div className="bg-white px-8 py-6 rounded-xl text-center">
-              <h2 className="text-green-600 font-bold text-xl">
-                Password Updated ✅
-              </h2>
-            </div>
-          </div>
+  <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+    
+    {/* Popup Box */}
+    <div className="bg-white/90 backdrop-blur-md px-10 py-8 rounded-2xl shadow-2xl text-center animate-fadeIn scale-95 hover:scale-100 transition-all duration-300">
+
+      {/* Success Icon */}
+      <div className="flex justify-center mb-4">
+        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100">
+          <svg
+            className="w-8 h-8 text-green-600"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Title */}
+      <h2 className="text-green-600 font-bold text-2xl mb-2">
+        Password update
+      </h2>
+
+      {/* Subtitle */}
+      <p className="text-gray-500 text-sm">
+        Welcome back! Redirecting you...
+      </p>
+
+      {/* Loader bar */}
+      <div className="mt-5 w-full bg-gray-200 h-1 rounded-full overflow-hidden">
+        <div className="h-full bg-green-500 animate-progress"></div>
+      </div>
+      </div>
+      </div>
         )}
 
         <p className="text-center mt-4 text-sm">

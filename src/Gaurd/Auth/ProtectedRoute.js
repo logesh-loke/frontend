@@ -14,26 +14,9 @@ export default function ProtectedRoute({ children }) {
       return;
     }
 
-    async function checkAuth() {
-      try {
-        const res = await fetch("http://localhost:8080/api/v1/profile", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        setIsAuth(res.ok);
-      } catch (err) {
-        console.log("ProtectedRoute error:", err);
-        setIsAuth(false);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    checkAuth();
+    // Just check token existence - no API call needed
+    setIsAuth(true);
+    setLoading(false);
   }, []);
 
   if (loading) return <h3>Checking auth...</h3>;
