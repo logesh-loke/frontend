@@ -8,6 +8,7 @@ import ForgotPassword from "./Pages/ForgotPassword";
 
 import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
 import GuestRoute from "./Gaurd/Auth/GuestRoute";
+import OtpLogin from "./Pages/OtpLogin";
 
 export default function App() {
   return (
@@ -49,6 +50,14 @@ export default function App() {
             <Profile />
           </ProtectedRoute>
         }
+      />
+
+      <Route path="/otp-login"
+      element={
+        <GuestRoute>
+      <OtpLogin/>
+      </GuestRoute>
+      }
       />
 
       {/* ✅ Default redirect (FIXED) */}

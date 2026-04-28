@@ -1,96 +1,63 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Global promise to track ongoing request
-let profileRequestPromise = null;
-
 function Profile() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const hasFetched = useRef(false); // Prevent multiple fetches
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    // Skip if already fetched
-    if (hasFetched.current) {
-      console.log("⏭️ Skipping duplicate fetch");
-      return;
-    }
-    hasFetched.current = true;
+    // ✅ CRITICAL: Prevent double fetch
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
 
-    async function loadUserFromStorage() {
+    const loadProfile = async () => {
       const token = localStorage.getItem("token");
-      
+
       if (!token) {
-        setLoading(false);
         navigate("/login");
         return;
       }
 
-      // Check cache first
-      const cachedUser = localStorage.getItem("user");
-      if (cachedUser) {
-        try {
-          setUser(JSON.parse(cachedUser));
-          setLoading(false);
-          console.log("✅ Loaded from cache");
-          return;
-        } catch (e) {
-          console.error("Cache parse error", e);
-        }
-      }
-
-      // Use global promise to prevent duplicate requests
-      if (!profileRequestPromise) {
-        console.log("🚀 Making profile API request");
-        profileRequestPromise = fetch("http://localhost:8080/api/v1/profile", {
+      try {
+        const response = await fetch("http://localhost:8080/api/v1/profile", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        })
-          .then(async (res) => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            const userInfo = data?.data || data?.user;
-            
-            if (userInfo) {
-              localStorage.setItem("user", JSON.stringify(userInfo));
-              return userInfo;
-            }
-            throw new Error("No user data");
-          })
-          .finally(() => {
-            // Reset after 100ms to allow for future refetches if needed
-            setTimeout(() => {
-              profileRequestPromise = null;
-            }, 100);
-          });
-      } else {
-        console.log("♻️ Reusing existing profile request");
-      }
+        });
 
-      try {
-        const userInfo = await profileRequestPromise;
+        if (!response.ok) {
+          throw new Error("Unauthorized");
+        }
+
+        const data = await response.json();
+        const userInfo = data?.data || data?.user;
+
+        if (!userInfo) {
+          throw new Error("Invalid user data");
+        }
+
         setUser(userInfo);
-      } catch (error) {
-        console.error("Profile fetch failed:", error);
+        localStorage.setItem("user", JSON.stringify(userInfo));
+      } catch (err) {
+        console.error("❌ Error:", err);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    loadUserFromStorage();
+    loadProfile();
   }, [navigate]);
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    profileRequestPromise = null; // Reset global promise
     navigate("/login");
   };
 
@@ -119,9 +86,7 @@ function Profile() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-gray-200">
       <div className="bg-white p-8 rounded-3xl shadow-2xl w-96">
-        <h2 className="text-2xl font-bold text-center mb-6">
-          User Profile 👤
-        </h2>
+        <h2 className="text-2xl font-bold text-center mb-6">User Profile 👤</h2>
 
         <div className="space-y-3 text-gray-700">
           <p><b>ID:</b> {user.id || user._id || "-"}</p>
@@ -134,7 +99,7 @@ function Profile() {
 
         <button
           onClick={logout}
-          className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg"
+          className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition duration-200"
         >
           Logout
         </button>

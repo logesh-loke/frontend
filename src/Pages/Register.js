@@ -154,6 +154,7 @@ const Register = () => {
           <div>
             <label className="text-sm"> First Name</label>
             <input
+            placeholder="firstname"
               name="firstname"
               value={form.firstname}
               onChange={handleChange}
@@ -165,6 +166,7 @@ const Register = () => {
           <div>
             <label className="text-sm">Last Name</label>
             <input
+            placeholder="lastname"
               name="lastname"
               value={form.lastname}
               onChange={handleChange}
@@ -177,6 +179,7 @@ const Register = () => {
 
         <label className="text-sm">Email</label>
         <input
+        placeholder="Email"
           name="email"
           value={form.email}
           onChange={handleChange}
@@ -186,6 +189,7 @@ const Register = () => {
 
         <label className="text-sm">Phone</label>
         <input
+        placeholder="Phone no"
           name="contactno"
           value={form.contactno}
           onChange={handleChange}
@@ -195,6 +199,7 @@ const Register = () => {
 
         <label className="text-sm">Address</label>
         <textarea
+        placeholder="Address"
           name="address"
           value={form.address}
           onChange={handleChange}
@@ -204,6 +209,7 @@ const Register = () => {
 
         <label className="text-sm">Password</label>
         <input
+        placeholder="Password"
           type="password"
           name="password"
           value={form.password}
