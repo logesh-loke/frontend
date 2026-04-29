@@ -18,7 +18,7 @@ function Login() {
   const [loginLoading, setLoginLoading] = useState(false);
   const submittedRef = useRef(false);
 
-  // ✅ RETRY FUNCTION (3 attempts with exponential backoff)
+  // RETRY FUNCTION (3 attempts with exponential backoff)
   async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
     try {
       const res = await fetch(url, options);
