@@ -8,19 +8,13 @@ function Profile() {
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    // ✅ CRITICAL: Prevent double fetch
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
     const loadProfile = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
       try {
+        const token = localStorage.getItem("token");
+
         const response = await fetch("http://localhost:8080/api/v1/profile", {
           method: "GET",
           headers: {
@@ -42,10 +36,14 @@ function Profile() {
 
         setUser(userInfo);
         localStorage.setItem("user", JSON.stringify(userInfo));
+
       } catch (err) {
         console.error("❌ Error:", err);
+
+        // logout only if API truly fails
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
         navigate("/login");
       } finally {
         setLoading(false);
@@ -86,7 +84,9 @@ function Profile() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-gray-200">
       <div className="bg-white p-8 rounded-3xl shadow-2xl w-96">
-        <h2 className="text-2xl font-bold text-center mb-6">User Profile 👤</h2>
+        <h2 className="text-2xl font-bold text-center mb-6">
+          User Profile 👤
+        </h2>
 
         <div className="space-y-3 text-gray-700">
           <p><b>ID:</b> {user.id || user._id || "-"}</p>
