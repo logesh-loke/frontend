@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../Services/Api";
+
 
 function Profile() {
   const navigate = useNavigate();
@@ -15,8 +17,8 @@ function Profile() {
       try {
         const token = localStorage.getItem("token");
 
-        const response = await fetch("http://localhost:8080/api/v1/profile", {
-          method: "GET",
+        const response = await apiFetch("/api/v1/profile", {
+        method: "GET",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
