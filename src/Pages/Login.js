@@ -68,7 +68,7 @@ function Login() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ identifier, password }),
-          // Credential: "include"
+          Credential: "include"
         },
         3
       );
