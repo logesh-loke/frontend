@@ -48,14 +48,15 @@ export default function App() {
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["user"]}>
             <Profile />
           </ProtectedRoute>
         }
       />
-
-      <Route path="/otp-login"
-      element={
+      
+      <Route
+        path="/otp-login"
+        element={
         <GuestRoute>
       <OtpLogin/>
       </GuestRoute>
@@ -63,13 +64,13 @@ export default function App() {
       />
 
        <Route
-      path="/admin-profile"
-      element={
-      <ProtectedRoute allowedRoles={["admin"]}>
-        <AdminProfile />
-      </ProtectedRoute>
-    }
-   />
+        path="/admin-profile"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminProfile />
+          </ProtectedRoute>
+        }
+      />
 
     <Route path="/unauthorized" element={<Unauthorized />} />
       {/* ✅ Default redirect (FIXED) */}

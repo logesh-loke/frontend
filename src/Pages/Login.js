@@ -18,12 +18,11 @@ function Login() {
   const [loginLoading, setLoginLoading] = useState(false);
   const submittedRef = useRef(false);
 
-  // RETRY FUNCTION (3 attempts with exponential backoff)
+  // 🔁 RETRY FUNCTION
   async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
     try {
       const res = await fetch(url, options);
 
-      // Retry only for server errors (5xx)
       if (!res.ok && res.status >= 500 && retries > 0) {
         await new Promise((resolve) => setTimeout(resolve, delay));
         return fetchWithRetry(url, options, retries - 1, delay * 2);
@@ -31,7 +30,6 @@ function Login() {
 
       return res;
     } catch (error) {
-      // Retry on network error
       if (retries > 0) {
         await new Promise((resolve) => setTimeout(resolve, delay));
         return fetchWithRetry(url, options, retries - 1, delay * 2);
@@ -40,7 +38,7 @@ function Login() {
     }
   }
 
-  // ================= PASSWORD LOGIN =================
+  // ================= LOGIN =================
   async function passwordLogin(e) {
     e.preventDefault();
 
@@ -68,7 +66,7 @@ function Login() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ identifier, password }),
-          Credential: "include"
+          credentials: "include", // ✅ FIXED
         },
         3
       );
@@ -76,15 +74,29 @@ function Login() {
       const data = await res.json();
 
       if (data.success) {
+        // 🔐 Normalize role
+        const role = (data.user.role || data.user.accessLevel || "")
+          .toLowerCase()
+          .trim();
+
+        // ✅ Store user with normalized role
+        const userInfo = { ...data.user, role };
+
         localStorage.setItem("token", data.accessToken);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("user", JSON.stringify(userInfo));
 
         setSuccess(true);
+        submittedRef.current = false;
 
-        submittedRef.current = false; // ✅ reset
-        setTimeout(() => navigate("/profile"), 800);
+        // 🔁 Redirect based on role
+        setTimeout(() => {
+          if (role === "admin") {
+            navigate("/admin-profile");
+          } else {
+            navigate("/profile");
+          }
+        }, 800);
       } else {
-        // ❌ Do NOT retry for wrong credentials
         setErrors((prev) => ({ ...prev, password: data.message }));
         submittedRef.current = false;
       }
@@ -131,14 +143,13 @@ function Login() {
           <button
             type="button"
             onClick={() => navigate("/otp-login")}
-            className={`w-1/2 p-2 ${
-              mode === "otp" ? "bg-blue-600 text-white" : "bg-gray-200"
-            }`}
+            className="w-1/2 p-2 bg-gray-200"
           >
             OTP
           </button>
         </div>
 
+        {/* Password Login */}
         {mode === "password" && (
           <>
             <label className="text-sm">Email or Phone</label>
@@ -159,8 +170,8 @@ function Login() {
 
             <label className="text-sm">Password</label>
             <input
-              placeholder="Password"
               type="password"
+              placeholder="Password"
               className="border rounded-xl px-4 py-2 w-full mb-2"
               value={password}
               onChange={(e) => {
