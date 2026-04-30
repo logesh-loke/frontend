@@ -9,6 +9,8 @@ import ForgotPassword from "./Pages/ForgotPassword";
 import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
 import GuestRoute from "./Gaurd/Auth/GuestRoute";
 import OtpLogin from "./Pages/OtpLogin";
+import AdminProfile from "./Pages/Admin/AdminProfile";
+import Unauthorized from "./Gaurd/Auth/Unauthorized";
 
 export default function App() {
   return (
@@ -60,6 +62,16 @@ export default function App() {
       }
       />
 
+       <Route
+      path="/admin-profile"
+      element={
+      <ProtectedRoute allowedRoles={["admin"]}>
+        <AdminProfile />
+      </ProtectedRoute>
+    }
+   />
+
+    <Route path="/unauthorized" element={<Unauthorized />} />
       {/* ✅ Default redirect (FIXED) */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
