@@ -104,7 +104,7 @@ localStorage.setItem("user", JSON.stringify(userInfo));
         <div className="space-y-3 text-gray-700">
             <p><b>ID:</b> {user.id}</p>
             <p><b>First Name:</b> {user.firstname} </p>
-            <p><b>Last Name</b>{user.lastname}</p>
+            <p><b>Last Name:</b>{user.lastname}</p>
             <p><b>Email:</b> {user.email}</p>
             <p><b>Contact:</b> {user.contactno}</p>
             <p><b>Address:</b> {user.address}</p>
