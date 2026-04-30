@@ -207,9 +207,9 @@ function ForgotPassword() {
         {/* STEP 1 */}
         {step === 1 && (
           <>
-            <label className="text-sm"> Email or Phone </label>
+            <label className="text-sm"> Email </label>
             <input
-              placeholder="Email or Phone"
+              placeholder="Enter your Email"
               className="border px-4 py-2 w-full rounded-xl mb-2"
               value={email}
               onChange={(e) => {

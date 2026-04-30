@@ -146,10 +146,10 @@ function OtpLogin() {
         {/* STEP 1 */}
         {step === 1 && (
           <>
-            <label className="text-sm">Email or Phone</label>
+            <label className="text-sm">Email </label>
             <input
               className="border px-4 py-2 w-full rounded-xl mb-2"
-              placeholder="Email or Phone"
+              placeholder="Enter your Email"
               value={identifier}
               onChange={(e) => {
                 setIdentifier(e.target.value);

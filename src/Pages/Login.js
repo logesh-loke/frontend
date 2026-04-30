@@ -152,9 +152,9 @@ function Login() {
         {/* Password Login */}
         {mode === "password" && (
           <>
-            <label className="text-sm">Email or Phone</label>
+            <label className="text-sm">Email</label>
             <input
-              placeholder="Email or phone"
+              placeholder="Enter your Email"
               className="border rounded-xl px-4 py-2 w-full mb-2"
               value={identifier}
               onChange={(e) => {
