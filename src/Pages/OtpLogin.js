@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import bg from "../Assets/bg-img.jpg";
 
 function OtpLogin() {
@@ -35,7 +35,7 @@ function OtpLogin() {
       const res = await fetch(`${BASE}/api/v1/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // 🔥 IMPORTANT
+        credentials: "include",
         body: JSON.stringify({ identifier }),
       });
 
@@ -72,22 +72,33 @@ function OtpLogin() {
       const res = await fetch(`${BASE}/api/v1/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // 🔥 IMPORTANT
+        credentials: "include",
         body: JSON.stringify({ identifier, otp }),
       });
 
       const data = await res.json();
-      console.log("OTP RESPONSE:", data);
 
       if (!res.ok || !data.success) {
         throw new Error(data.message || "Invalid OTP");
       }
 
-      // ✅ SAVE TOKEN (correct key)
-      localStorage.setItem("token", data.accessToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // 🔐 Normalize role
+      const role = (data.user.role || data.user.accessLevel || "")
+        .toLowerCase()
+        .trim();
 
-      navigate("/profile");
+      // ✅ Store user
+      const userInfo = { ...data.user, role };
+
+      localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(userInfo));
+
+      // 🔁 Redirect based on role
+      if (role === "admin") {
+        navigate("/admin-profile");
+      } else {
+        navigate("/profile");
+      }
 
     } catch (err) {
       setError(err.message);
@@ -113,9 +124,7 @@ function OtpLogin() {
     <div
       className="flex items-center justify-center min-h-screen"
       style={{
-        backgroundImage: `url(${bg})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        background: `url(${bg}) center / cover no-repeat`,
       }}
     >
       <div className="bg-white p-8 rounded-3xl shadow-2xl w-96">
@@ -143,8 +152,8 @@ function OtpLogin() {
               placeholder="Email or Phone"
               value={identifier}
               onChange={(e) => {
-              setIdentifier(e.target.value);
-              setError("");
+                setIdentifier(e.target.value);
+                setError("");
               }}
             />
 
@@ -163,7 +172,7 @@ function OtpLogin() {
         {/* STEP 2 */}
         {step === 2 && (
           <>
-            <label className="text-sm">Otp</label>
+            <label className="text-sm">OTP</label>
             <input
               className="border px-4 py-2 w-full rounded-xl mb-2"
               placeholder="Enter OTP"
@@ -195,12 +204,6 @@ function OtpLogin() {
             </button>
           </>
         )}
-
-        {/* <p className="text-center mt-4 text-sm">
-          <Link to="/login" className="text-blue-600">
-            Back to Login
-          </Link>
-        </p> */}
       </div>
     </div>
   );

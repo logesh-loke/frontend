@@ -7,19 +7,16 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   try {
     user = JSON.parse(localStorage.getItem("user"));
   } catch (e) {
-    console.error("Invalid user JSON");
-  }
-
-  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!user) {
+  if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // ✅ normalize role (MAIN FIX)
   const role = (user.role || "").toLowerCase().trim();
+
+  console.log("CHECK ROLE:", role, "ALLOWED:", allowedRoles);
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     return <Navigate to="/unauthorized" replace />;
