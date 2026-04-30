@@ -64,11 +64,18 @@ localStorage.setItem("user", JSON.stringify(userInfo));
     loadProfile();
   }, [navigate]);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
+  async function logout() {
+  await fetch("http://localhost:8080/api/v1/logout", {
+    method: "POST",
+    credentials: "include", // 🔥 VERY IMPORTANT
+  });
+
+  // clear frontend storage
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  window.location.href = "/login";
+}
 
   if (loading) {
     return (

@@ -70,11 +70,18 @@ function Profile() {
     loadProfile();
   }, [navigate]);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
+  async function logout() {
+  await fetch("http://localhost:8080/api/v1/logout", {
+    method: "POST",
+    credentials: "include", 
+  });
+
+  // clear frontend storage
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  window.location.href = "/login";
+}
 
   // ⏳ Loading
   if (loading) {

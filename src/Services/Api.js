@@ -12,6 +12,10 @@ async function refreshToken() {
 
     const data = await res.json();
 
+    if (!data.accessToken) {
+      throw new Error("No access token received");
+    }
+
     // store new access token
     localStorage.setItem("token", data.accessToken);
 
