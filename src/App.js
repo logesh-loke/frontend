@@ -5,65 +5,55 @@ import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import Profile from "./Pages/Profile";
 import ForgotPassword from "./Pages/ForgotPassword";
+import OtpLogin from "./Pages/OtpLogin";
+
+import { Home } from "./Pages/Home/Home";
+import AdminProfile from "./Pages/Admin/AdminProfile";
 
 import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
 import GuestRoute from "./Gaurd/Auth/GuestRoute";
-import OtpLogin from "./Pages/OtpLogin";
-import AdminProfile from "./Pages/Admin/AdminProfile";
 import Unauthorized from "./Gaurd/Auth/Unauthorized";
+
+import Layout from "./Components/Layout";
 
 export default function App() {
   return (
     <Routes>
 
       {/* 🔓 Guest Routes */}
+      <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+      <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+      <Route path="/forgotpassword" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+      <Route path="/otp-login" element={<GuestRoute><OtpLogin /></GuestRoute>} />
+
+      {/* 🔒 Protected Routes */}
+
+      {/* ✅ Home (Main Dashboard) */}
       <Route
-        path="/login"
+        path="/home"
         element={
-          <GuestRoute>
-            <Login />
-          </GuestRoute>
+          <ProtectedRoute allowedRoles={["user"]}>
+            <Layout>
+              <Home />
+            </Layout>
+          </ProtectedRoute>
         }
       />
 
-      <Route
-        path="/register"
-        element={
-          <GuestRoute>
-            <Register />
-          </GuestRoute>
-        }
-      />
-
-      <Route
-        path="/forgotpassword"
-        element={
-          <GuestRoute>
-            <ForgotPassword />
-          </GuestRoute>
-        }
-      />
-
-      {/* 🔒 Protected Route */}
+      {/* ✅ Profile with Layout */}
       <Route
         path="/profile"
         element={
           <ProtectedRoute allowedRoles={["user"]}>
-            <Profile />
+            <Layout>
+              <Profile />
+            </Layout>
           </ProtectedRoute>
         }
       />
-      
-      <Route
-        path="/otp-login"
-        element={
-        <GuestRoute>
-      <OtpLogin/>
-      </GuestRoute>
-      }
-      />
 
-       <Route
+      {/* ✅ Admin */}
+      <Route
         path="/admin-profile"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
@@ -72,11 +62,11 @@ export default function App() {
         }
       />
 
-    <Route path="/unauthorized" element={<Unauthorized />} />
-      {/* ✅ Default redirect (FIXED) */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* ❌ fallback removed */}
+      {/* 🔁 Default redirect */}
+      <Route path="/" element={<Navigate to="/home" replace />} />
+
     </Routes>
   );
 }
