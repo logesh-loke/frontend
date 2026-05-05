@@ -20,15 +20,13 @@ export default function App() {
   return (
     <Routes>
 
-      {/* 🔓 Guest Routes */}
+      {/* 🔓 GUEST ROUTES */}
       <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
       <Route path="/forgotpassword" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
       <Route path="/otp-login" element={<GuestRoute><OtpLogin /></GuestRoute>} />
 
-      {/* 🔒 Protected Routes */}
-
-      {/* ✅ Home (Main Dashboard) */}
+      {/* 🔒 USER ROUTES */}
       <Route
         path="/home"
         element={
@@ -40,7 +38,6 @@ export default function App() {
         }
       />
 
-      {/* ✅ Profile with Layout */}
       <Route
         path="/profile"
         element={
@@ -52,20 +49,41 @@ export default function App() {
         }
       />
 
-      {/* ✅ Admin */}
+      {/* 🔒 ADMIN ROUTE */}
       <Route
         path="/admin-profile"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminProfile />
+            <Layout>
+              <AdminProfile />
+            </Layout>
           </ProtectedRoute>
         }
       />
 
+      {/* 🚫 Unauthorized page */}
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* 🔁 Default redirect */}
-      <Route path="/" element={<Navigate to="/home" replace />} />
+      {/* 🔁 DEFAULT ROUTE (FIXED) */}
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to={localStorage.getItem("token") ? "/home" : "/login"}
+            replace
+          />
+        }
+      />
+
+      {/* ❌ 404 PAGE */}
+      <Route
+        path="*"
+        element={
+          <div className="flex items-center justify-center h-screen text-xl font-semibold">
+            404 - Page Not Found
+          </div>
+        }
+      />
 
     </Routes>
   );

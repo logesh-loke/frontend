@@ -4,21 +4,36 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const token = localStorage.getItem("token");
 
   let user = null;
+
+  // 🔐 Safe user parsing
   try {
-    user = JSON.parse(localStorage.getItem("user"));
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      user = JSON.parse(storedUser);
+    }
   } catch (e) {
+    console.error("Invalid user data");
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
     return <Navigate to="/login" replace />;
   }
 
+  // 🚫 Not logged in
   if (!token || !user) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     return <Navigate to="/login" replace />;
   }
 
-  const role = (user.role || "").toLowerCase().trim();
+  // 🧠 Normalize role safely
+  const role = (user?.role || "").toLowerCase().trim();
 
-  console.log("CHECK ROLE:", role, "ALLOWED:", allowedRoles);
-
-  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+  // 🔒 Role-based access control
+  if (
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(role)
+  ) {
     return <Navigate to="/unauthorized" replace />;
   }
 

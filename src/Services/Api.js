@@ -1,11 +1,13 @@
+// src/Services/Api.js
+
 const BASE_URL = "http://localhost:8080";
 
-// 🔁 Refresh Token Function
+// 🔁 Refresh Token
 async function refreshToken() {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/refresh-token`, {
       method: "POST",
-      credentials: "include", // required for cookie
+      credentials: "include",
     });
 
     if (!res.ok) throw new Error("Refresh failed");
@@ -16,7 +18,6 @@ async function refreshToken() {
       throw new Error("No access token received");
     }
 
-    // store new access token
     localStorage.setItem("token", data.accessToken);
 
     return data.accessToken;
@@ -26,45 +27,44 @@ async function refreshToken() {
   }
 }
 
-// 🌐 Main API Wrapper
-export async function apiFetch(url, options = {}) {
-  let token = localStorage.getItem("token");
+// 🌐 API Wrapper
+export async function apiFetch(url, options = {}, retry = false) {
+  try {
+    const token = localStorage.getItem("token");
 
-  let response = await fetch(BASE_URL + url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-      Authorization: token ? `Bearer ${token}` : "",
-    },
-    credentials: "include", // 🔥 must for cookies
-  });
+    const response = await fetch(BASE_URL + url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: "include",
+    });
 
-  // 🔐 If token expired → try refresh ONCE
-  if (response.status === 401 && !options._retry) {
-    const newToken = await refreshToken();
+    // 🔐 Handle token expiry
+    if (response.status === 401 && !retry) {
+      console.warn("🔁 Token expired, trying refresh...");
 
-    if (newToken) {
-      // retry original request with new token
-      response = await fetch(BASE_URL + url, {
-        ...options,
-        _retry: true, // 🔥 prevent infinite loop
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {}),
-          Authorization: `Bearer ${newToken}`,
-        },
-        credentials: "include",
-      });
-    } else {
-      // ❌ refresh failed → logout
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      const newToken = await refreshToken();
 
-      window.location.href = "/login";
-      return;
+      if (newToken) {
+        return apiFetch(url, options, true); // ✅ retry cleanly
+      } else {
+        console.error("❌ Refresh failed → logout");
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        window.location.href = "/login";
+
+        throw new Error("Session expired");
+      }
     }
-  }
 
-  return response;
+    return response;
+  } catch (err) {
+    console.error("❌ API FETCH ERROR:", err);
+    throw err;
+  }
 }
