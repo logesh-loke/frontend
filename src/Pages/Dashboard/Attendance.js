@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../Services/Api";
-import AttendanceDashboard from "./AttendanceDashboard";
+import AttendanceChart from "../Charts/AttendanceChart";
 
 const AttendanceCard = () => {
   const [status, setStatus] = useState("idle");
@@ -9,24 +9,17 @@ const AttendanceCard = () => {
   const [workingMinutes, setWorkingMinutes] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refresh, setRefresh] = useState(false);
+  const [chartData, setChartData] = useState([]);
 
   const TARGET_WORKING_MINUTES = 540;
 
   // 🔥 LOAD TODAY DATA
   const loadToday = async () => {
     try {
-      console.log("🔥 Calling TODAY API...");
-
       const res = await apiFetch("/api/v1/attendance/today");
-
-      if (!res.ok) {
-        console.error("❌ API FAILED:", res.status);
-        return;
-      }
+      if (!res || !res.ok) return;
 
       const result = await res.json();
-      console.log("✅ API DATA:", result);
-
       const data = result?.data ?? result;
 
       const punchIn =
@@ -57,12 +50,45 @@ const AttendanceCard = () => {
         setStatus("in");
       }
     } catch (err) {
-      console.error("❌ TODAY API ERROR:", err);
+      console.error(err);
+    }
+  };
+
+  // 🔥 LOAD CHART DATA (LAST 30 DAYS)
+  const loadHistoryForChart = async () => {
+    try {
+      const res = await apiFetch("/api/v1/attendance/history");
+      if (!res || !res.ok) return setChartData([]);
+
+      const result = await res.json();
+      const data = result?.data || [];
+
+      const today = new Date();
+
+      const last30Days = data.filter((item) => {
+        const d = new Date(item.Date);
+        if (isNaN(d)) return false;
+
+        const diff = (today - d) / (1000 * 60 * 60 * 24);
+        return diff <= 30;
+      });
+
+      const formatted = last30Days.map((item) => ({
+        Date: item.Date?.slice(0, 6),
+        ProductionHours: item.ProductionHours || 0,
+        Status: item.Status,
+      }));
+
+      setChartData(formatted);
+    } catch (err) {
+      console.error(err);
+      setChartData([]);
     }
   };
 
   useEffect(() => {
     loadToday();
+    loadHistoryForChart();
   }, [refresh]);
 
   // ⏱ LIVE TIMER
@@ -83,14 +109,15 @@ const AttendanceCard = () => {
     return () => clearInterval(timer);
   }, [status, punchInTime]);
 
+  // ✅ Allow Punch Out after 3 hours
   const canPunchOut = () => {
     if (!punchInTime) return false;
     return (new Date() - new Date(punchInTime)) / 60000 >= 180;
   };
 
+  // ✅ Disable Punch In only when already punched in
   const isPunchInDisabled = () => {
-    if (!punchInTime) return false;
-    return (new Date() - new Date(punchInTime)) / 60000 < 180;
+    return status === "in";
   };
 
   const getProgress = () =>
@@ -153,6 +180,12 @@ const AttendanceCard = () => {
         throw new Error(err.message);
       }
 
+      // 🔥 RESET → allow next punch in
+      setStatus("idle");
+      setPunchInTime(null);
+      setPunchOutTime(null);
+      setWorkingMinutes(0);
+
       setRefresh((prev) => !prev);
     } catch (err) {
       alert(err.message);
@@ -165,6 +198,8 @@ const AttendanceCard = () => {
 
   return (
     <div className="space-y-6">
+
+      {/* 🟢 TODAY CARD */}
       <div className="bg-gray-200 p-6 rounded-xl max-w-2xl">
         <div className="flex justify-between items-start">
           <div>
@@ -185,10 +220,6 @@ const AttendanceCard = () => {
                 Punch Out: {formatTime(punchOutTime)}
               </p>
             )}
-
-            <p className="text-sm mt-1">
-              Shift: 09:30 AM – 06:30 PM
-            </p>
           </div>
 
           <button
@@ -198,21 +229,18 @@ const AttendanceCard = () => {
               (isIn ? !canPunchOut() : isPunchInDisabled())
             }
             className={`px-6 py-2 rounded-lg font-semibold ${
-              isIn ? "bg-gray-50" : "bg-green-500"
+              isIn ? "bg-gray-100" : "bg-green-500"
             } disabled:opacity-50`}
           >
             {loading
               ? "Processing..."
               : isIn
               ? "PUNCH OUT"
-              : status === "out"
-              ? "PUNCHED OUT"
-              : isPunchInDisabled()
-              ? "WAIT 3 HOURS"
               : "PUNCH IN"}
           </button>
         </div>
 
+        {/* Progress */}
         <div className="mt-5">
           <div className="w-full bg-gray-300 h-2 rounded-full">
             <div
@@ -228,7 +256,9 @@ const AttendanceCard = () => {
         </p>
       </div>
 
-      <AttendanceDashboard key={refresh} />
+      {/* 📊 CHART */}
+      <AttendanceChart data={chartData} />
+
     </div>
   );
 };

@@ -35,11 +35,11 @@ const Header = () => {
   };
 
   return (
-    <div className="bg-gray-50 h-14 flex items-center justify-between px-6 shadow-sm">
+    <div className="bg-gray-50 h-14 flex items-center justify-between px-6 shadow-sm ">
 
       {/* 🏷 Title */}
       <p className="text-xl font-medium text-gray-700">
-        Employee Workspace
+        User profile
       </p>
 
       {/* 👤 Profile + Arrow */}

@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../Services/Api";
-import bg from "../Assets/bg1-img.jpg"
+import { FaEdit, FaCheck } from "react-icons/fa";
+import bg from "../Assets/bg1-img.jpg";
 
 function Profile() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -15,52 +18,27 @@ function Profile() {
 
     const loadProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          throw new Error("No token");
-        }
-
-        const response = await apiFetch("/api/v1/profile", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await apiFetch("/api/v1/profile", {
+          credentials: "include",
         });
-        
 
-        // ✅ FIXED: correct response check
-        if (!response.ok) {
-          throw new Error("Unauthorized");
-        }
+        if (!res.ok) throw new Error("Unauthorized");
 
-      const data = await response.json();
-      const userInfo = data?.data || data?.user;
+        const data = await res.json();
+        const userInfo = data?.data || data?.user;
 
-        if (!userInfo) {
-          throw new Error("Invalid user data");
-        }
+        if (!userInfo) throw new Error("Invalid user");
 
-        // 🔐 Normalize role
         const role = (userInfo.role || "").toLowerCase().trim();
-
-        if (role !== "user") {
-          throw new Error("Access denied");
-        }
-
-        // store normalized role
-        userInfo.role = role;
+        if (role !== "user") throw new Error("Access denied");
 
         setUser(userInfo);
+        setForm(userInfo);
+
         localStorage.setItem("user", JSON.stringify(userInfo));
-
       } catch (err) {
-        console.error("❌ Error:", err);
-
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
+        console.error(err);
+        localStorage.clear();
         navigate("/login");
       } finally {
         setLoading(false);
@@ -70,72 +48,179 @@ function Profile() {
     loadProfile();
   }, [navigate]);
 
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const res = await apiFetch("/api/v1/update/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Update failed");
+      }
+
+      const updatedUser = data?.data || data?.user || data;
+
+      if (!updatedUser) throw new Error("Invalid update response");
+
+      setUser(updatedUser);
+      setForm(updatedUser);
+      setEditing(false);
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      alert("Profile updated ✅");
+    } catch (err) {
+      console.error("Update error:", err);
+      alert(err.message);
+    }
+  };
+
   async function logout() {
-  await fetch("http://localhost:8080/api/v1/logout", {
-    method: "POST",
-    credentials: "include", 
-  });
+    await fetch("http://localhost:8080/api/v1/logout", {
+      method: "POST",
+      credentials: "include",
+    });
 
-  // clear frontend storage
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+    localStorage.clear();
+    window.location.href = "/login";
+  }
 
-  window.location.href = "/login";
-}
-
-  // ⏳ Loading
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center text-lg font-semibold">
+      <div className="h-screen flex items-center justify-center">
         Loading profile...
       </div>
     );
   }
 
-  // ❌ No user
   if (!user) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center">
-        <h2 className="text-xl font-bold text-red-500">Session expired</h2>
-        <button
-          onClick={() => navigate("/login")}
-          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Go to Login
-        </button>
+      <div className="h-screen flex items-center justify-center">
+        Session expired
       </div>
     );
   }
 
-  // UI
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-gray-200"
-    style={{
-            backgroundImage: `url(${bg})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        backgroundImage: `url(${bg})`,
+        backgroundSize: "cover",
+      }}
     >
-      <div className="bg-white p-8 rounded-3xl shadow-2xl w-96">
-        <h2 className="text-2xl font-bold text-center mb-6">
-          User Profile 👤
-        </h2>
+      <div className="bg-white p-8 rounded-3xl shadow-2xl w-[500px]">
 
-        <div className="space-y-3 text-gray-700">
-          <p><b>ID:</b> {user.id}</p>
-          <p><b>First Name:</b> {user.firstname }</p>
-          <p><b>Last Name:</b> {user.lastname }</p>
-          <p><b>Email:</b> {user.email }</p>
-          <p><b>Contact:</b> {user.contactno}</p>
-          <p><b>Address:</b> {user.address}</p>
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">User Profile 👤</h2>
+
+          <button
+            onClick={editing ? handleUpdate : () => setEditing(true)}
+            className={`p-2 rounded-full ${
+              editing ? "bg-green-100" : "bg-gray-100"
+            }`}
+          >
+            {editing ? (
+              <FaCheck className="text-green-600" />
+            ) : (
+              <FaEdit className="text-gray-700" />
+            )}
+          </button>
         </div>
 
+        {/* FORM */}
+        <div className="space-y-4">
+
+          <div className="flex items-center gap-4">
+            <label className="w-24">Id</label>
+            <input
+              name="id"
+              value={form.id || ""}
+              disabled
+              className="flex-1 border p-2 rounded bg-gray-100"
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="w-24">First Name</label>
+            <input
+              name="firstname"
+              value={form.firstname || ""}
+              onChange={handleChange}
+              disabled={!editing}
+              className="flex-1 border p-2 rounded"
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="w-24">Last Name</label>
+            <input
+              name="lastname"
+              value={form.lastname || ""}
+              onChange={handleChange}
+              disabled={!editing}
+              className="flex-1 border p-2 rounded"
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="w-24">Email</label>
+            <input
+              name="email"
+              value={form.email || ""}
+              onChange={handleChange}
+              disabled={!editing}
+              className="flex-1 border p-2 rounded"
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="w-24">Phone</label>
+            <input
+              name="contactno"
+              value={form.contactno || ""}
+              onChange={handleChange}
+              disabled={!editing}
+              className="flex-1 border p-2 rounded"
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="w-24">Address</label>
+            <input
+              name="address"
+              value={form.address || ""}
+              onChange={handleChange}
+              disabled={!editing}
+              className="flex-1 border p-2 rounded"
+            />
+          </div>
+
+        </div>
+
+        {/* LOGOUT */}
         <button
           onClick={logout}
-          className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition duration-200"
+          className="mt-6 w-full bg-red-500 text-white py-2 rounded"
         >
           Logout
         </button>
+
       </div>
     </div>
   );

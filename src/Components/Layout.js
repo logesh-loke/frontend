@@ -4,19 +4,19 @@ import Sidebar from "./Sidebars";
 
 const Layout = ({ children }) => {
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden">
 
-      {/* ⬅ Sidebar */}
+      {/* ⬅ Sidebar (fixed) */}
       <Sidebar />
 
       {/* ➡ Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ml-2">
 
-        {/* 🔝 Header */}
+        {/* 🔝 Header (fixed inside layout) */}
         <Header />
 
-        {/* 📄 Page Content */}
-        <div className="p-6 bg-gray-100 min-h-screen">
+        {/* 🔥 Scroll Container with SNAP */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory scroll-smooth">
           {children}
         </div>
 

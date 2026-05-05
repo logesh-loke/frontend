@@ -3,12 +3,13 @@ import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
   const menu = [
-  { name: "Home", path: "/home" },
-  { name: "Profile", path: "/profile" },
-];
+    { name: "Home", path: "/home" },
+    { name: "Attendance History", path: "/attendance-history" },
+    { name: "Profile", path: "/profile" },
+  ];
 
   return (
-    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col p-4">
+    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col p-4 ">
 
       {/* 🏷 Logo */}
       <h2 className="text-xl font-bold mb-8 text-center">

@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return <Navigate to="/login" replace />;
   }
 
-  // 🚫 Not logged in
+  //  Not logged in
   if (!token || !user) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");

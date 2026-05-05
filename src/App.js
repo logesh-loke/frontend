@@ -6,6 +6,7 @@ import Register from "./Pages/Register";
 import Profile from "./Pages/Profile";
 import ForgotPassword from "./Pages/ForgotPassword";
 import OtpLogin from "./Pages/OtpLogin";
+import AttendanceDashboard from "./Pages/Dashboard/AttendanceDashboard";
 
 import { Home } from "./Pages/Home/Home";
 import AdminProfile from "./Pages/Admin/AdminProfile";
@@ -49,6 +50,18 @@ export default function App() {
         }
       />
 
+      {/* ✅ FIXED: Attendance Route */}
+      <Route
+        path="/attendance-history"
+        element={
+          <ProtectedRoute allowedRoles={["user"]}>
+            <Layout>
+              <AttendanceDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       {/* 🔒 ADMIN ROUTE */}
       <Route
         path="/admin-profile"
@@ -61,10 +74,10 @@ export default function App() {
         }
       />
 
-      {/* 🚫 Unauthorized page */}
+      {/* 🚫 Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* 🔁 DEFAULT ROUTE (FIXED) */}
+      {/* 🔁 DEFAULT ROUTE */}
       <Route
         path="/"
         element={
@@ -75,7 +88,7 @@ export default function App() {
         }
       />
 
-      {/* ❌ 404 PAGE */}
+      {/* ❌ 404 */}
       <Route
         path="*"
         element={
