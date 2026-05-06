@@ -1,88 +1,73 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../Services/Api";
 
-function AttendanceHistory() {
+function AdminUserAttendance() {
   const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadHistory = async () => {
+    const loadAttendance = async () => {
       try {
-        const res = await apiFetch("/api/v1/attendance/history");
+        console.log("🚀 Fetching TODAY attendance");
+
+        const res = await apiFetch("/api/v1/admin/attendance/today");
 
         if (!res.ok) {
-          throw new Error("Failed to fetch history");
+          throw new Error("Failed to fetch");
         }
 
         const data = await res.json();
 
-        console.log("HISTORY 👉", data);
+        console.log("📦 DATA:", data);
 
-        // ✅ backend already returns formatted array
         setRecords(data || []);
       } catch (err) {
-        console.error("History error:", err);
+        console.error("❌ Error:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadHistory();
+    loadAttendance();
   }, []);
+
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">
-        Attendance History
-      </h2>
+      <h2 className="text-xl font-bold mb-4">Today Attendance</h2>
 
-      <table className="w-full border text-center">
+      <table className="w-full border">
         <thead className="bg-gray-200">
           <tr>
-            <th>Date</th>
-            <th>Status</th>
+            <th>Name</th>
+            <th>Email</th>
             <th>Punch In</th>
-            <th>Punch Out</th>
-            <th>Hours</th>
-            <th>Late (mins)</th>
-            <th>Early Exit</th>
+            <th>Status</th>
+            <th>Late (min)</th>
           </tr>
         </thead>
 
         <tbody>
           {records.length > 0 ? (
             records.map((r, i) => (
-              <tr key={i} className="border-t">
-
-                {/* ✅ Date */}
-                <td>{r.Date}</td>
-
-                {/* ✅ Status */}
-                <td>{r.Status}</td>
-
-                {/* ✅ Punch In (MAIN) */}
-                <td className="text-green-600 font-semibold">
-                  {r.In || "--"}
+              <tr key={i} className="text-center border-t">
+                <td>{r.firstname} {r.lastname}</td>
+                <td>{r.email}</td>
+                <td>
+                  {r.punch_in
+                    ? new Date(r.punch_in).toLocaleTimeString()
+                    : "-"}
                 </td>
-
-                {/* ✅ Punch Out */}
-                <td className="text-red-600 font-semibold">
-                  {r.Out || "--"}
-                </td>
-
-                {/* ✅ Working Hours */}
-                <td>{r.ProductionHours} hrs</td>
-
-                {/* ✅ Late */}
-                <td>{r.Late} min</td>
-
-                {/* ✅ Early Logout */}
-                <td>{r.EarlyLogout} min</td>
-
+                <td>{r.attendance_status}</td>
+                <td>{r.lateMinutes}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="7" className="p-4">
-                No records found
-              </td>
+              <td colSpan="5">No data</td>
             </tr>
           )}
         </tbody>
@@ -91,4 +76,4 @@ function AttendanceHistory() {
   );
 }
 
-export default AttendanceHistory;
+export default AdminUserAttendance;

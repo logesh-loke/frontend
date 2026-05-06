@@ -14,7 +14,7 @@ async function refreshToken() {
 
     const data = await res.json();
 
-    if (!data.accessToken) {
+    if (!data?.accessToken) {
       throw new Error("No access token received");
     }
 
@@ -27,42 +27,68 @@ async function refreshToken() {
   }
 }
 
+// 🚪 Logout (IMPORTANT)
+export async function logoutUser() {
+  try {
+    await fetch(`${BASE_URL}/api/v1/logout`, {
+      method: "POST",
+      credentials: "include", // 🔥 clears cookie from backend
+    });
+  } catch (err) {
+    console.error("Logout API error:", err);
+  }
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  window.location.href = "/login";
+}
+
 // 🌐 API Wrapper
 export async function apiFetch(url, options = {}, retry = false) {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await fetch(BASE_URL + url, {
+    const headers = {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    let response = await fetch(BASE_URL + url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers,
       credentials: "include",
     });
 
-    // 🔐 Handle token expiry
+    // 🔐 Token expired → refresh once
     if (response.status === 401 && !retry) {
-      console.warn("🔁 Token expired, trying refresh...");
+      console.warn("🔁 Token expired, refreshing...");
 
       const newToken = await refreshToken();
 
       if (newToken) {
-        return apiFetch(url, options, true); // ✅ retry cleanly
+        headers.Authorization = `Bearer ${newToken}`;
+
+        response = await fetch(BASE_URL + url, {
+          ...options,
+          headers,
+          credentials: "include",
+        });
+
+        return response;
       } else {
         console.error("❌ Refresh failed → logout");
-
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
-        window.location.href = "/login";
-
-        throw new Error("Session expired");
+        await logoutUser();
+        return;
       }
     }
 
     return response;
+
   } catch (err) {
     console.error("❌ API FETCH ERROR:", err);
     throw err;
