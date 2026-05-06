@@ -6,11 +6,12 @@ const Header = () => {
   const dropdownRef = useRef();
   const navigate = useNavigate();
 
-  // ✅ Get user from localStorage
+  // ✅ GET USER
   const user = JSON.parse(localStorage.getItem("user"));
+  const role = (user?.role || "").toLowerCase();
   const userName = user?.firstname || "U";
 
-  // 🔒 Close dropdown when clicking outside
+  // 🔒 CLOSE DROPDOWN OUTSIDE
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -21,33 +22,32 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🔐 Logout function
+  // 🔐 LOGOUT
   const handleLogout = async () => {
     await fetch("http://localhost:8080/api/v1/logout", {
       method: "POST",
       credentials: "include",
     });
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
+    localStorage.clear();
     navigate("/login");
   };
 
   return (
-    <div className="bg-gray-50 h-14 flex items-center justify-between px-6 shadow-sm ">
+    <div className="bg-gray-50 h-14 flex items-center justify-between px-6 shadow-sm">
 
-      {/* 🏷 Title */}
+      {/* 🏷 DYNAMIC TITLE */}
       <p className="text-xl font-medium text-gray-700">
-        User profile
+        {role === "admin" ? "Admin Dashboard " : "User Dashboard"}
       </p>
 
-      {/* 👤 Profile + Arrow */}
+      {/* 👤 PROFILE */}
       <div
         className="relative flex items-center gap-2 cursor-pointer"
         ref={dropdownRef}
       >
-        {/* Profile Circle */}
+
+        {/* PROFILE ICON */}
         <div
           onClick={() => setOpen(!open)}
           className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold"
@@ -55,10 +55,10 @@ const Header = () => {
           {userName.charAt(0).toUpperCase()}
         </div>
 
-        {/* 🔽 Arrow */}
+        {/* ARROW */}
         <svg
           onClick={() => setOpen(!open)}
-          className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${
+          className={`w-4 h-4 text-gray-600 transition-transform ${
             open ? "rotate-180" : ""
           }`}
           fill="none"
@@ -66,23 +66,52 @@ const Header = () => {
           strokeWidth="2"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          <path d="M19 9l-7 7-7-7" />
         </svg>
 
-        {/* Dropdown */}
+        {/* 🔽 DROPDOWN */}
         {open && (
-          <div className="absolute right-0 top-14 w-44 bg-white shadow-lg rounded-lg py-2 z-50">
+          <div className="absolute right-0 top-14 w-48 bg-white shadow-lg rounded-lg py-2 z-50">
 
-            {/* ✅ Correct Link */}
+            {/* 👑 ADMIN LINKS */}
+            {role === "admin" && (
+              <>
+                <Link
+                  to="/admin-dashboard"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 hover:bg-gray-100 text-sm"
+                >
+                  Dashboard
+                </Link>
+
+                <Link
+                  to="/admin-users"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 hover:bg-gray-100 text-sm"
+                >
+                  Manage Users
+                </Link>
+
+                <Link
+                  to="/admin-attendance"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 hover:bg-gray-100 text-sm"
+                >
+                  Attendance
+                </Link>
+              </>
+            )}
+
+            {/* 👤 COMMON LINK */}
             <Link
               to="/profile"
               onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm hover:bg-gray-100"
+              className="block px-4 py-2 hover:bg-gray-100 text-sm"
             >
-              View Profile
+              Profile
             </Link>
 
-            {/* ✅ Logout */}
+            {/* 🔐 LOGOUT */}
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-500"

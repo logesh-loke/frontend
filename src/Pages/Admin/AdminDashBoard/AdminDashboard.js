@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../../../Services/Api";
 
 function AdminDashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
 
-  // ================= LOAD USER =================
+  const [user, setUser] = useState(null);
+  const [users, setUsers] = useState([]); // store all users
+
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
 
@@ -15,49 +17,44 @@ function AdminDashboard() {
     }
 
     setUser(storedUser);
+    loadUsers(); // fetch users
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
+
+  const loadUsers = async () => {
+    try {
+      const res = await apiFetch("/api/v1/admin/users", {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.message);
+
+      setUsers(data?.data || []); //  store users
+    } catch (err) {
+      console.error("User fetch error:", err);
+    }
   };
+
+  // ================= COUNTS =================
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.active).length; // optional
+  const adminCount = users.filter((u) => u.role === "admin").length;
 
   return (
     <div className="min-h-screen bg-gray-100">
 
-      {/* ================= TOPBAR ================= */}
-      <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
-        <h2 className="font-semibold text-lg">
-          Admin Dashboard 👑
-        </h2>
-
-        <div className="flex items-center gap-4">
-          <span className="bg-gray-200 px-3 py-1 rounded text-sm">
-            {user?.firstname}
-          </span>
-
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1 bg-red-500 text-white rounded"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* ================= CONTENT ================= */}
       <div className="p-6 space-y-6">
 
-        {/* CARDS */}
+        {/* 🔥 CARDS (DYNAMIC) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          <Card title="Total Users" value="120" />
-          <Card title="Active Users" value="98" />
-          <Card title="Admins" value="5" />
-
+          <Card title="Total Users" value={totalUsers} />
+          <Card title="Active Users" value={activeUsers} />
+          <Card title="Admins" value={adminCount} />
         </div>
 
-        {/* USERS TABLE */}
+        {/* 🔥 USERS TABLE */}
         <div className="bg-white p-6 rounded-xl shadow">
 
           <h3 className="text-lg font-bold mb-4">
@@ -76,19 +73,24 @@ function AdminDashboard() {
             </thead>
 
             <tbody>
-              <tr className="text-center border-t">
-                <td className="p-2">1</td>
-                <td className="p-2">John Doe</td>
-                <td className="p-2">john@mail.com</td>
-                <td className="p-2">user</td>
-              </tr>
-
-              <tr className="text-center border-t">
-                <td className="p-2">2</td>
-                <td className="p-2">Admin</td>
-                <td className="p-2">admin@mail.com</td>
-                <td className="p-2">admin</td>
-              </tr>
+              {users.length > 0 ? (
+                users.map((u) => (
+                  <tr key={u.id} className="text-center border-t">
+                    <td className="p-2">{u.id}</td>
+                    <td className="p-2">
+                      {u.firstname} {u.lastname}
+                    </td>
+                    <td className="p-2">{u.email}</td>
+                    <td className="p-2">{u.role}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="p-4 text-center">
+                    No users found
+                  </td>
+                </tr>
+              )}
             </tbody>
 
           </table>

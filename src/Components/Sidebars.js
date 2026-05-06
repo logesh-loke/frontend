@@ -12,11 +12,11 @@ const Sidebar = () => {
     { name: "Profile", path: "/profile" },
   ];
 
-  // 👑 ADMIN MENU
+  //  ADMIN MENU
   const adminMenu = [
     { name: "Dashboard", path: "/admin-dashboard" },
     { name: "Manage Users", path: "/admin-users" },
-    { name: "Manage Attendance", path: "/admin-attendance" },
+    { name: "user Attendance", path: "/admin-user" },
     { name: "Profile", path: "/admin-profile" },
   ];
 
@@ -28,7 +28,7 @@ const Sidebar = () => {
 
       {/* 🏷 LOGO */}
       <h2 className="text-xl font-bold mb-8 text-center">
-        {role === "admin" ? "Admin Panel 👑" : "Dashboard"}
+        {role === "admin" ? "Admin Panel " : "Dashboard"}
       </h2>
 
       {/* 📌 MENU */}

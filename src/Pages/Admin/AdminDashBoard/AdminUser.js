@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { apiFetch } from "../Services/Api";
+import { apiFetch } from "../../../Services/Api";
 
 function AdminUsers() {
   const [users, setUsers] = useState([]);

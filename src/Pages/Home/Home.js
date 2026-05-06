@@ -7,7 +7,7 @@ export const Home = () => {
 
       {/* 🏷 Page Title */}
       <h1 className="text-2xl font-bold text-gray-800">
-        Dashboard
+       
       </h1>
 
       {/* 📊 Attendance Section */}

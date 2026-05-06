@@ -18,6 +18,7 @@ import Unauthorized from "./Gaurd/Auth/Unauthorized";
 import Layout from "./Components/Layout";
 import AdminDashboard from "./Pages/Admin/AdminDashBoard/AdminDashboard";
 import AdminProfile from "./Pages/Admin/AdminProfile";
+import AdminUserAttendance from "./Components/Admin/UserAttendance";
 
 export default function App() {
   return (
@@ -52,7 +53,7 @@ export default function App() {
         }
       />
 
-      {/* ✅ FIXED: Attendance Route */}
+      {/*  FIXED: Attendance Route */}
       <Route
         path="/attendance-history"
         element={
@@ -64,7 +65,7 @@ export default function App() {
         }
       />
 
-      {/* 🔒 ADMIN ROUTE */}
+      {/* ADMIN ROUTE */}
       <Route
         path="/admin-dashboard"
         element={
@@ -100,11 +101,11 @@ export default function App() {
 
       {/* ✅ FIXED: Attendance Route */}
       <Route
-        path="/attendance-history"
+        path="/admin-user"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <Layout>
-              <AttendanceDashboard />
+              <AdminUserAttendance/>
             </Layout>
           </ProtectedRoute>
         }
