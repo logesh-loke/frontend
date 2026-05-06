@@ -91,7 +91,7 @@ function Login() {
         // 🔁 Redirect based on role
         setTimeout(() => {
           if (role === "admin") {
-            navigate("/admin-profile");
+            navigate("/admin-dashboard");
           } else {
             navigate("/profile");
           }

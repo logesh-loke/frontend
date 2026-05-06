@@ -9,13 +9,15 @@ import OtpLogin from "./Pages/OtpLogin";
 import AttendanceDashboard from "./Pages/Dashboard/AttendanceDashboard";
 
 import { Home } from "./Pages/Home/Home";
-import AdminProfile from "./Pages/Admin/AdminProfile";
+// import AdminProfile from "./Pages/Admin/AdminProfile";
 
 import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
 import GuestRoute from "./Gaurd/Auth/GuestRoute";
 import Unauthorized from "./Gaurd/Auth/Unauthorized";
 
 import Layout from "./Components/Layout";
+import AdminDashboard from "./Pages/Admin/AdminDashBoard/AdminDashboard";
+import AdminProfile from "./Pages/Admin/AdminProfile";
 
 export default function App() {
   return (
@@ -64,11 +66,45 @@ export default function App() {
 
       {/* 🔒 ADMIN ROUTE */}
       <Route
+        path="/admin-dashboard"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Layout>
+              <AdminDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/home"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Layout>
+              <Home />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/admin-profile"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <Layout>
               <AdminProfile />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ✅ FIXED: Attendance Route */}
+      <Route
+        path="/attendance-history"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Layout>
+              <AttendanceDashboard />
             </Layout>
           </ProtectedRoute>
         }

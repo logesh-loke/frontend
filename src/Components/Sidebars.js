@@ -2,21 +2,36 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
-  const menu = [
+  const user = JSON.parse(localStorage.getItem("user"));
+  const role = (user?.role || "").toLowerCase();
+
+  // 👤 USER MENU
+  const userMenu = [
     { name: "Home", path: "/home" },
     { name: "Attendance History", path: "/attendance-history" },
     { name: "Profile", path: "/profile" },
   ];
 
-  return (
-    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col p-4 ">
+  // 👑 ADMIN MENU
+  const adminMenu = [
+    { name: "Dashboard", path: "/admin-dashboard" },
+    { name: "Manage Users", path: "/admin-users" },
+    { name: "Manage Attendance", path: "/admin-attendance" },
+    { name: "Profile", path: "/admin-profile" },
+  ];
 
-      {/* 🏷 Logo */}
+  // 🔥 SWITCH BASED ON ROLE
+  const menu = role === "admin" ? adminMenu : userMenu;
+
+  return (
+    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col p-4">
+
+      {/* 🏷 LOGO */}
       <h2 className="text-xl font-bold mb-8 text-center">
-        Dashboard
+        {role === "admin" ? "Admin Panel 👑" : "Dashboard"}
       </h2>
 
-      {/* 📌 Menu */}
+      {/* 📌 MENU */}
       <nav className="flex flex-col gap-2">
         {menu.map((item) => (
           <NavLink
