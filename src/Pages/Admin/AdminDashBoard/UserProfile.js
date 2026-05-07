@@ -1,29 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../../Services/Api";
 
-function UserProfile() {
+function AdminUsersTable() {
 
-  const [user, setUser] = useState(null);
+  const [users, setUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
-  // =========================================
-  // LOAD USER
-  // =========================================
+  // LOAD USERS
 
   useEffect(() => {
 
-    loadProfile();
+    loadUsers();
 
   }, []);
 
-  const loadProfile = async () => {
+  const loadUsers = async () => {
 
     try {
 
       const res =
         await apiFetch(
-          "/api/v1/user/profile"
+          "/api/v1/admin/users"
         );
 
       const data =
@@ -33,18 +31,18 @@ function UserProfile() {
 
         throw new Error(
           data?.message ||
-          "Failed to load profile"
+          "Failed to load users"
         );
       }
 
-      setUser(
-        data?.data || null
+      setUsers(
+        data?.data || []
       );
 
     } catch (err) {
 
       console.error(
-        "PROFILE ERROR:",
+        "USERS ERROR:",
         err
       );
 
@@ -54,148 +52,178 @@ function UserProfile() {
     }
   };
 
-  // =========================================
-  // LOADING
-  // =========================================
+ // LOADING
 
   if (loading) {
 
     return (
 
       <div className="flex justify-center items-center h-screen text-lg font-semibold">
-
-        Loading Profile...
-
+        Loading Users...
       </div>
     );
   }
 
-  // =========================================
-  // NO USER
-  // =========================================
-
-  if (!user) {
-
-    return (
-
-      <div className="flex justify-center items-center h-screen text-red-500 font-semibold">
-
-        User Not Found
-
-      </div>
-    );
-  }
-
-  // =========================================
   // UI
-  // =========================================
-
   return (
 
     <div className="min-h-screen bg-gray-100 p-6">
-
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg p-6 overflow-x-auto">
 
         {/* HEADER */}
 
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-40 flex items-center justify-center">
-
-          <div className="w-28 h-28 rounded-full bg-white flex items-center justify-center text-4xl font-bold text-indigo-600 shadow-lg border-4 border-white">
-
-            {user.firstname?.charAt(0)}
-
-          </div>
-
-        </div>
-
-        {/* CONTENT */}
-
-        <div className="p-8">
-
-          <h2 className="text-3xl font-bold text-center mb-2">
-
-            {user.firstname} {user.lastname}
-
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            All User Profiles
           </h2>
 
-          <p className="text-center text-gray-500 mb-8">
-
-            {user.role}
-
-          </p>
-
-          {/* DETAILS */}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <ProfileCard
-              title="User ID"
-              value={user.id}
-            />
-
-            <ProfileCard
-              title="Email"
-              value={user.email}
-            />
-
-            <ProfileCard
-              title="Phone"
-              value={user.phone || "N/A"}
-            />
-
-            <ProfileCard
-              title="Department"
-              value={user.department || "N/A"}
-            />
-
-            <ProfileCard
-              title="Role"
-              value={user.role}
-            />
-
-            <ProfileCard
-              title="Status"
-              value={
-                user.active
-                  ? "Active"
-                  : "Inactive"
-              }
-            />
-
+          <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-semibold">
+            Total Users : {users.length}
           </div>
 
         </div>
 
-      </div>
+        {/* TABLE */}
 
+        <table className="w-full border-collapse">
+
+          <thead>
+
+            <tr className="bg-gray-200 text-gray-700">
+
+              <th className="p-3 border">
+                ID
+              </th>
+
+
+              <th className="p-3 border">
+                Name
+              </th>
+
+              <th className="p-3 border">
+                Email
+              </th>
+
+              <th className="p-3 border">
+                Phone
+              </th>
+
+              <th className="p-3 border">
+                Address
+              </th>
+
+              <th className="p-3 border">
+                Role
+              </th>
+
+              <th className="p-3 border">
+                Status
+              </th>
+
+               <th className="p-3 border">
+                Edit
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {users.length > 0 ? (
+
+              users.map((user) => (
+
+                <tr
+                  key={user.id}
+                  className="text-center hover:bg-gray-50"
+                >
+
+                  {/* ID */}
+
+                  <td className="p-3 border">
+
+                    {user.id}
+
+                  </td>
+
+             
+                  {/* NAME */}
+
+                  <td className="p-3 border font-medium">
+
+                    {user.firstname} {user.lastname}
+
+                  </td>
+
+                  {/* EMAIL */}
+
+                  <td className="p-3 border">
+
+                    {user.email}
+
+                  </td>
+
+
+                  {/* PHONE */}
+
+                  <td className="p-3 border">
+                    {user.contactno || "N/A"}
+                  </td>
+
+                  {/* Address */}
+                  <td className="p-3 border">
+                    {user.address || "N/A"}
+                  </td>
+
+                  {/* ROLE */}
+
+                  <td className="p-3 border">
+
+                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+
+                      {user.role}
+
+                    </span>
+
+                  </td>
+
+                  {/* STATUS */}
+
+                  <td className="p-3 border">
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        user.active
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+
+                      {user.active
+                        ? "Active"
+                        : "Inactive"}
+                    </span>
+                  </td>
+                </tr>
+              ))
+
+            ) : (
+              <tr>
+
+                <td
+                  colSpan="8"
+                  className="p-6 text-center text-gray-500"
+                >
+                  No Users Found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-// =========================================
-// PROFILE CARD
-// =========================================
-
-const ProfileCard = ({
-  title,
-  value,
-}) => (
-
-  <div className="bg-gray-50 p-5 rounded-xl border">
-
-    <p className="text-sm text-gray-500 mb-1">
-
-      {title}
-
-    </p>
-
-    <p className="text-lg font-semibold text-gray-800">
-
-      {value}
-
-    </p>
-
-  </div>
-);
-
-export default UserProfile;
+export default AdminUsersTable;
