@@ -4,7 +4,6 @@ import { apiFetch } from "../../Services/Api";
 const AttendanceDashboard = () => {
   const [history, setHistory] = useState([]);
 
-  // ✅ FILTER STATE
   const [filters, setFilters] = useState({
     status: "ALL",
     fromDate: "",
@@ -14,6 +13,10 @@ const AttendanceDashboard = () => {
   useEffect(() => {
     loadHistory();
   }, []);
+
+  // ========================================
+  // LOAD LAST 30 DAYS HISTORY
+  // ========================================
 
   const loadHistory = async () => {
     try {
@@ -25,16 +28,29 @@ const AttendanceDashboard = () => {
       }
 
       const result = await res.json();
+
       const data = result?.data || [];
 
-      setHistory(Array.isArray(data) ? data : []);
+      // ✅ SORT LATEST FIRST
+      const sortedData = data.sort(
+        (a, b) =>
+          new Date(b.date) - new Date(a.date)
+      );
+
+      // ✅ TAKE LAST 30 RECORDS
+      const last30Days = sortedData.slice(0, 30);
+
+      setHistory(last30Days);
     } catch (err) {
       console.error(err);
       setHistory([]);
     }
   };
 
-  // ✅ HANDLE FILTER CHANGE
+  // ========================================
+  // HANDLE FILTER
+  // ========================================
+
   const handleFilterChange = (e) => {
     setFilters({
       ...filters,
@@ -42,32 +58,45 @@ const AttendanceDashboard = () => {
     });
   };
 
-  // ✅ FILTER LOGIC
-  const filteredHistory = history.filter((item) => {
-    const itemDate = new Date(item.Date);
+  // ========================================
+  // FILTER LOGIC
+  // ========================================
 
-    const from = filters.fromDate ? new Date(filters.fromDate) : null;
-    const to = filters.toDate ? new Date(filters.toDate) : null;
+  const filteredHistory = history.filter((item) => {
+    const itemDate = item.date
+      ? new Date(item.date)
+      : null;
+
+    const from = filters.fromDate
+      ? new Date(filters.fromDate)
+      : null;
+
+    const to = filters.toDate
+      ? new Date(filters.toDate)
+      : null;
 
     const matchStatus =
-      filters.status === "ALL" || item.Status === filters.status;
+      filters.status === "ALL" ||
+      item.status === filters.status;
 
-    const matchFrom = !from || itemDate >= from;
-    const matchTo = !to || itemDate <= to;
+    const matchFrom =
+      !from || !itemDate || itemDate >= from;
+
+    const matchTo =
+      !to || !itemDate || itemDate <= to;
 
     return matchStatus && matchFrom && matchTo;
   });
 
   return (
     <div className="mt-6">
-      <h2 className="text-lg font-semibold mb-3">
-        Attendance History
+      <h2 className="text-lg font-semibold mb-4">
+        Last 30 Days Attendance
       </h2>
 
-      {/* 🔍 FILTER UI */}
-      <div className="flex gap-4 mb-4 flex-wrap">
+      {/* FILTERS */}
 
-        {/* Status */}
+      <div className="flex gap-4 mb-4 flex-wrap">
         <select
           name="status"
           value={filters.status}
@@ -75,11 +104,14 @@ const AttendanceDashboard = () => {
           className="border p-2 rounded"
         >
           <option value="ALL">All</option>
-          <option value="PRESENT">Present</option>
-          <option value="ABSENT">Absent</option>
+          <option value="PRESENT">
+            Present
+          </option>
+          <option value="ABSENT">
+            Absent
+          </option>
         </select>
 
-        {/* From Date */}
         <input
           type="date"
           name="fromDate"
@@ -88,7 +120,6 @@ const AttendanceDashboard = () => {
           className="border p-2 rounded"
         />
 
-        {/* To Date */}
         <input
           type="date"
           name="toDate"
@@ -96,68 +127,108 @@ const AttendanceDashboard = () => {
           onChange={handleFilterChange}
           className="border p-2 rounded"
         />
-
       </div>
 
-      {/* 📊 TABLE */}
+      {/* TABLE */}
+
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300">
-
           <thead className="bg-gray-200">
             <tr>
-              <th className="p-2">Date</th>
-              <th className="p-2">Status</th>
-              <th className="p-2">In</th>
-              <th className="p-2">Out</th>
-              <th className="p-2">Hours</th>
-              <th className="p-2">Late</th>
-              <th className="p-2">Early Logout</th>
+              <th className="p-2 border">
+                Date
+              </th>
+
+              <th className="p-2 border">
+                Status
+              </th>
+
+              <th className="p-2 border">
+                Punch In
+              </th>
+
+              <th className="p-2 border">
+                Punch Out
+              </th>
+
+              <th className="p-2 border">
+                Working Hours
+              </th>
+
+              <th className="p-2 border">
+                Late Login
+              </th>
+
+              <th className="p-2 border">
+                Early Logout
+              </th>
             </tr>
           </thead>
 
           <tbody>
             {filteredHistory.length > 0 ? (
-              filteredHistory.map((item, index) => (
-                <tr key={index} className="border-t text-center">
-
-                  <td className="p-2">{item.Date}</td>
-
-                  <td
-                    className={`p-2 font-semibold ${
-                      item.Status === "ABSENT"
-                        ? "text-red-500"
-                        : "text-green-600"
-                    }`}
+              filteredHistory.map(
+                (item, index) => (
+                  <tr
+                    key={index}
+                    className="border-t text-center"
                   >
-                    {item.Status}
-                  </td>
+                    <td className="p-2 border">
+                      {item.date || "--"}
+                    </td>
 
-                  <td className="p-2">{item.In}</td>
-                  <td className="p-2">{item.Out}</td>
+                    <td
+                      className={`p-2 border font-semibold ${
+                        item.status ===
+                        "ABSENT"
+                          ? "text-red-500"
+                          : "text-green-600"
+                      }`}
+                    >
+                      {item.status || "--"}
+                    </td>
 
-                  <td className="p-2">
-                    {item.ProductionHours} hrs
-                  </td>
+                    <td className="p-2 border">
+                      {item.punch_in ||
+                        "--"}
+                    </td>
 
-                  <td className="p-2">
-                    {item.Late ? `${item.Late} min` : "--"}
-                  </td>
+                    <td className="p-2 border">
+                      {item.punch_out ||
+                        "--"}
+                    </td>
 
-                  <td className="p-2">
-                    {item.EarlyLogout ? `${item.EarlyLogout} min` : "--"}
-                  </td>
+                    <td className="p-2 border">
+                      {item.working_hours ||
+                        "0.00"}{" "}
+                      hrs
+                    </td>
 
-                </tr>
-              ))
+                    <td className="p-2 border">
+                      {item.late_login_mins
+                        ? `${item.late_login_mins} min`
+                        : "--"}
+                    </td>
+
+                    <td className="p-2 border">
+                      {item.early_logout_mins
+                        ? `${item.early_logout_mins} min`
+                        : "--"}
+                    </td>
+                  </tr>
+                )
+              )
             ) : (
               <tr>
-                <td colSpan="7" className="p-4 text-center">
+                <td
+                  colSpan="7"
+                  className="p-4 text-center"
+                >
                   No records found
                 </td>
               </tr>
             )}
           </tbody>
-
         </table>
       </div>
     </div>

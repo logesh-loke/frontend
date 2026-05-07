@@ -12,6 +12,7 @@ export const Home = () => {
 
       {/* 📊 Attendance Section */}
       <Attendance />
+      
 
     </div>
   );

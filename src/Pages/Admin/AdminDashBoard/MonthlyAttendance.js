@@ -121,4 +121,4 @@ const AdminMonthlyAttendance = () => {
   );
 };
 
-export default AdminMonthlyAttendance;  
+export default AdminMonthlyAttendance;

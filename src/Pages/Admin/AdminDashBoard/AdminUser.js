@@ -55,7 +55,6 @@ function AdminUsers() {
             <tr key={u.id} className="text-center border-t">
 
               <td>{u.id}</td>
-
               <td>
                 {editingId === u.id ? (
                   <input

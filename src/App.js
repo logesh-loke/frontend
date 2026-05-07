@@ -20,6 +20,7 @@ import AdminDashboard from "./Pages/Admin/AdminDashBoard/AdminDashboard";
 import AdminProfile from "./Pages/Admin/AdminProfile";
 import AdminUserAttendance from "./Components/Admin/UserAttendance";
 import AdminMonthlyAttendance from "./Pages/Admin/AdminDashBoard/MonthlyAttendance";
+import UserProfile  from "./Pages/Admin/AdminDashBoard/UserProfile";
 
 export default function App() {
   return (
@@ -122,6 +123,17 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/user-profile"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Layout>
+              <UserProfile/>
+            </Layout>
+          </ProtectedRoute>
+        }
+        />
 
       <Route path="/unauthorized" element={<Unauthorized />} />
 

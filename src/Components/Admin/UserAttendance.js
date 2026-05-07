@@ -47,8 +47,10 @@ function AdminUserAttendance() {
             <th>Name</th>
             <th>Email</th>
             <th>Punch In</th>
-            <th>Status</th>
-            <th>Late (min)</th>
+            <th>Punch Out</th>
+            <th>Status</th> 
+            <th>Late (Login)</th>
+            <th>Early (Logout)</th>
           </tr>
         </thead>
 
@@ -57,18 +59,22 @@ function AdminUserAttendance() {
             records.map((r, i) => (
               <tr key={i} className="text-center border-t">
                 <td>{r.firstname} {r.lastname}</td>
-
                 <td>{r.email}</td>
-
                 <td>
                   {r.punch_in
                     ? new Date(r.punch_in).toLocaleTimeString()
                     : "-"}
                 </td>
 
-                <td>{r.attendance_status}</td>
+                <td>
+                  {r.punch_out
+                    ? new Date(r.punch_out).toLocaleTimeString()
+                    : "-"}
+                </td>
 
+                <td>{r.attendance_status}</td>
                 <td>{r.lateMinutes}</td>
+                <td>{r.earlyLogout}</td>
               </tr>
             ))
           ) : (
