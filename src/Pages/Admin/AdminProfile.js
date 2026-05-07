@@ -63,20 +63,7 @@ localStorage.setItem("user", JSON.stringify(userInfo));
 
     loadProfile();
   }, [navigate]);
-
-  async function logout() {
-  await fetch("http://localhost:8080/api/v1/logout", {
-    method: "POST",
-    credentials: "include", // 🔥 VERY IMPORTANT
-  });
-
-  // clear frontend storage
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-
-  window.location.href = "/login";
-}
-
+  
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -117,12 +104,6 @@ localStorage.setItem("user", JSON.stringify(userInfo));
             <p><b>Address:</b> {user.address}</p>
         </div>
 
-          <button
-          onClick={logout}
-          className="mt-6 w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition duration-200"
-        >
-          Logout
-        </button>
       </div>
     </div>
   );

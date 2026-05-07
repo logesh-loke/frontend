@@ -73,38 +73,9 @@ const Header = () => {
         {open && (
           <div className="absolute right-0 top-14 w-48 bg-white shadow-lg rounded-lg py-2 z-50">
 
-            {/* 👑 ADMIN LINKS */}
-            {role === "admin" && (
-              <>
-                <Link
-                  to="/admin-dashboard"
-                  onClick={() => setOpen(false)}
-                  className="block px-4 py-2 hover:bg-gray-100 text-sm"
-                >
-                  Dashboard
-                </Link>
-
-                <Link
-                  to="/admin-users"
-                  onClick={() => setOpen(false)}
-                  className="block px-4 py-2 hover:bg-gray-100 text-sm"
-                >
-                  Manage Users
-                </Link>
-
-                <Link
-                  to="/admin-attendance"
-                  onClick={() => setOpen(false)}
-                  className="block px-4 py-2 hover:bg-gray-100 text-sm"
-                >
-                  Attendance
-                </Link>
-              </>
-            )}
-
             {/* 👤 COMMON LINK */}
             <Link
-              to="/profile"
+              to="/admin-profile"
               onClick={() => setOpen(false)}
               className="block px-4 py-2 hover:bg-gray-100 text-sm"
             >

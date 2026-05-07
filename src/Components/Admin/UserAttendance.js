@@ -8,8 +8,6 @@ function AdminUserAttendance() {
   useEffect(() => {
     const loadAttendance = async () => {
       try {
-        console.log("🚀 Fetching TODAY attendance");
-
         const res = await apiFetch("/api/v1/admin/attendance/today");
 
         if (!res.ok) {
@@ -18,9 +16,11 @@ function AdminUserAttendance() {
 
         const data = await res.json();
 
-        console.log("📦 DATA:", data);
+        console.log("📦 API:", data);
 
-        setRecords(data || []);
+        //  IMPORTANT: your backend sends { success, data }
+        setRecords(data.data || []);
+
       } catch (err) {
         console.error("❌ Error:", err);
       } finally {
@@ -37,7 +37,9 @@ function AdminUserAttendance() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Today Attendance</h2>
+      <h2 className="text-xl font-bold mb-4">
+        Today Attendance
+      </h2>
 
       <table className="w-full border">
         <thead className="bg-gray-200">
@@ -55,19 +57,25 @@ function AdminUserAttendance() {
             records.map((r, i) => (
               <tr key={i} className="text-center border-t">
                 <td>{r.firstname} {r.lastname}</td>
+
                 <td>{r.email}</td>
+
                 <td>
                   {r.punch_in
                     ? new Date(r.punch_in).toLocaleTimeString()
                     : "-"}
                 </td>
+
                 <td>{r.attendance_status}</td>
+
                 <td>{r.lateMinutes}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="5">No data</td>
+              <td colSpan="5" className="text-center p-4">
+                No attendance found
+              </td>
             </tr>
           )}
         </tbody>

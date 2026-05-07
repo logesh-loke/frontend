@@ -8,19 +8,29 @@ const AttendanceCard = () => {
   const [punchOutTime, setPunchOutTime] = useState(null);
   const [workingMinutes, setWorkingMinutes] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [refresh, setRefresh] = useState(false);
   const [chartData, setChartData] = useState([]);
 
   const TARGET_WORKING_MINUTES = 540;
 
-  // 🔥 LOAD TODAY DATA
+  // =========================
+  // LOAD TODAY (FIXED)
+  // =========================
   const loadToday = async () => {
     try {
       const res = await apiFetch("/api/v1/attendance/today");
-      if (!res || !res.ok) return;
 
-      const result = await res.json();
-      const data = result?.data ?? result;
+      const result = await res.json().catch(() => null);
+
+      console.log("TODAY STATUS:", res.status);
+      console.log("TODAY RESPONSE:", result);
+
+      // ❌ DO NOT RESET UI ON ERROR
+      if (!res.ok || !result) {
+        console.warn("Today API failed but keeping UI state");
+        return;
+      }
+
+      const data = result?.data || result;
 
       const punchIn =
         data?.punchIn || data?.punch_in || data?.attendance?.punchIn;
@@ -28,6 +38,7 @@ const AttendanceCard = () => {
       const punchOut =
         data?.punchOut || data?.punch_out || data?.attendance?.punchOut;
 
+      // No punch-in yet
       if (!punchIn) {
         setStatus("idle");
         setPunchInTime(null);
@@ -42,46 +53,46 @@ const AttendanceCard = () => {
         setPunchOutTime(punchOut);
         setStatus("out");
 
-        const diff =
-          (new Date(punchOut) - new Date(punchIn)) / 60000;
-
+        const diff = (new Date(punchOut) - new Date(punchIn)) / 60000;
         setWorkingMinutes(Math.floor(diff));
       } else {
+        setPunchOutTime(null);
         setStatus("in");
+
+        const diff = (new Date() - new Date(punchIn)) / 60000;
+        setWorkingMinutes(Math.floor(diff));
       }
     } catch (err) {
-      console.error(err);
+      console.error("loadToday error:", err);
+      // ❌ DO NOT RESET STATE HERE
     }
   };
 
-  // 🔥 LOAD CHART DATA (LAST 30 DAYS)
+  // =========================
+  // HISTORY
+  // =========================
   const loadHistoryForChart = async () => {
     try {
       const res = await apiFetch("/api/v1/attendance/history");
-      if (!res || !res.ok) return setChartData([]);
 
-      const result = await res.json();
+      const result = await res.json().catch(() => null);
+
+      if (!res.ok || !result) {
+        setChartData([]);
+        return;
+      }
+
       const data = result?.data || [];
 
-      const today = new Date();
-
-      const last30Days = data.filter((item) => {
-        const d = new Date(item.Date);
-        if (isNaN(d)) return false;
-
-        const diff = (today - d) / (1000 * 60 * 60 * 24);
-        return diff <= 30;
-      });
-
-      const formatted = last30Days.map((item) => ({
-        Date: item.Date?.slice(0, 6),
-        ProductionHours: item.ProductionHours || 0,
-        Status: item.Status,
-      }));
-
-      setChartData(formatted);
+      setChartData(
+        data.map((item) => ({
+          Date: item.Date?.slice(0, 10),
+          ProductionHours: item.ProductionHours || 0,
+          Status: item.Status,
+        }))
+      );
     } catch (err) {
-      console.error(err);
+      console.error("history error:", err);
       setChartData([]);
     }
   };
@@ -89,119 +100,153 @@ const AttendanceCard = () => {
   useEffect(() => {
     loadToday();
     loadHistoryForChart();
-  }, [refresh]);
+  }, []);
 
-  // ⏱ LIVE TIMER
+  // =========================
+  // LIVE TIMER
+  // =========================
   useEffect(() => {
     let timer;
 
     if (status === "in" && punchInTime) {
       timer = setInterval(() => {
-        const diff =
-          (new Date() - new Date(punchInTime)) / 60000;
-
-        setWorkingMinutes(
-          Math.floor(Math.min(diff, TARGET_WORKING_MINUTES))
-        );
+        const diff = (new Date() - new Date(punchInTime)) / 60000;
+        setWorkingMinutes(Math.floor(Math.min(diff, TARGET_WORKING_MINUTES)));
       }, 1000);
     }
 
     return () => clearInterval(timer);
   }, [status, punchInTime]);
 
-  // ✅ Allow Punch Out after 3 hours
+  // =========================
+  // LOCK LOGIC
+  // =========================
+  const isPunchInLocked = () => {
+    if (!punchInTime) return false;
+    const diff = (new Date() - new Date(punchInTime)) / 60000;
+    return diff < 180;
+  };
+
   const canPunchOut = () => {
     if (!punchInTime) return false;
     return (new Date() - new Date(punchInTime)) / 60000 >= 180;
   };
 
-  // ✅ Disable Punch In only when already punched in
-  const isPunchInDisabled = () => {
-    return status === "in";
+  // =========================
+  // FORMAT
+  // =========================
+  const formatTime = (t) => {
+    if (!t) return "--:--";
+    return new Date(t).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
-  const getProgress = () =>
-    punchInTime
-      ? Math.min((workingMinutes / TARGET_WORKING_MINUTES) * 100, 100)
-      : 0;
-
-  const formatTime = (t) =>
-    t
-      ? new Date(t).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "--:--";
-
-  // 🟢 PUNCH IN
-  const handlePunchIn = async () => {
-    try {
-      setLoading(true);
-
-      const res = await apiFetch("/api/v1/punch-in", {
-        method: "POST",
-        body: JSON.stringify({
-          punchInTime: new Date().toISOString(),
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message);
-      }
-
-      setRefresh((prev) => !prev);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔴 PUNCH OUT
-  const handlePunchOut = async () => {
-    if (!canPunchOut()) {
-      alert("You can punch out after 3 hours");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const res = await apiFetch("/api/v1/punch-out", {
-        method: "POST",
-        body: JSON.stringify({
-          punchOutTime: new Date().toISOString(),
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message);
-      }
-
-      // 🔥 RESET → allow next punch in
-      setStatus("idle");
-      setPunchInTime(null);
-      setPunchOutTime(null);
-      setWorkingMinutes(0);
-
-      setRefresh((prev) => !prev);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const getProgress = () => {
+    if (!punchInTime) return 0;
+    return Math.min(
+      (workingMinutes / TARGET_WORKING_MINUTES) * 100,
+      100
+    );
   };
 
   const isIn = status === "in";
 
+  // =========================
+  // PUNCH IN
+  // =========================
+  const handlePunchIn = async () => {
+    try {
+      setLoading(true);
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const res = await apiFetch("/api/v1/punch-in", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+              }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.message);
+
+            await loadToday();
+          } catch (err) {
+            alert(err.message);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          alert("Location permission required");
+          setLoading(false);
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
+  // =========================
+  // PUNCH OUT
+  // =========================
+  const handlePunchOut = async () => {
+    try {
+      if (!canPunchOut()) {
+        alert("You can punch out after 3 hours");
+        return;
+      }
+
+      setLoading(true);
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const res = await apiFetch("/api/v1/punch-out", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+              }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.message);
+
+            await loadToday();
+          } catch (err) {
+            alert(err.message);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
+          alert("Location required");
+          setLoading(false);
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
 
-      {/* 🟢 TODAY CARD */}
-      <div className="bg-gray-200 p-6 rounded-xl max-w-2xl">
+      <div className="bg-gray-200 p-6 rounded-xl max-w-2xl shadow">
+
         <div className="flex justify-between items-start">
+
           <div>
             <p className="text-green-600 font-semibold text-sm">
               {status === "in"
@@ -224,23 +269,22 @@ const AttendanceCard = () => {
 
           <button
             onClick={isIn ? handlePunchOut : handlePunchIn}
-            disabled={
-              loading ||
-              (isIn ? !canPunchOut() : isPunchInDisabled())
-            }
-            className={`px-6 py-2 rounded-lg font-semibold ${
-              isIn ? "bg-gray-100" : "bg-green-500"
+            disabled={loading || isPunchInLocked()}
+            className={`px-6 py-2 rounded-lg font-semibold text-white ${
+              isIn ? "bg-red-500" : "bg-green-500"
             } disabled:opacity-50`}
           >
             {loading
               ? "Processing..."
               : isIn
               ? "PUNCH OUT"
+              : isPunchInLocked()
+              ? "LOCKED"
               : "PUNCH IN"}
           </button>
+
         </div>
 
-        {/* Progress */}
         <div className="mt-5">
           <div className="w-full bg-gray-300 h-2 rounded-full">
             <div
@@ -251,12 +295,11 @@ const AttendanceCard = () => {
         </div>
 
         <p className="mt-3 text-sm">
-          {Math.floor(workingMinutes / 60)} hrs{" "}
-          {workingMinutes % 60} mins
+          {Math.floor(workingMinutes / 60)} hrs {workingMinutes % 60} mins
         </p>
+
       </div>
 
-      {/* 📊 CHART */}
       <AttendanceChart data={chartData} />
 
     </div>

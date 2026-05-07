@@ -19,6 +19,7 @@ import Layout from "./Components/Layout";
 import AdminDashboard from "./Pages/Admin/AdminDashBoard/AdminDashboard";
 import AdminProfile from "./Pages/Admin/AdminProfile";
 import AdminUserAttendance from "./Components/Admin/UserAttendance";
+import AdminMonthlyAttendance from "./Pages/Admin/AdminDashBoard/MonthlyAttendance";
 
 export default function App() {
   return (
@@ -111,10 +112,19 @@ export default function App() {
         }
       />
 
-      {/* 🚫 Unauthorized */}
+       <Route
+        path="/admin-history"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Layout>
+              <AdminMonthlyAttendance/>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* 🔁 DEFAULT ROUTE */}
       <Route
         path="/"
         element={
@@ -125,7 +135,6 @@ export default function App() {
         }
       />
 
-      {/* ❌ 404 */}
       <Route
         path="*"
         element={
