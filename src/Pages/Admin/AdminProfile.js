@@ -90,7 +90,7 @@ function AdminProfile() {
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-12 text-white flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold">{user.firstname} {user.lastname}</h2>
-              <p className="text-blue-100 mt-1">Administrator</p>
+              <p className="text-blue-100 mt-1">Admin</p>
             </div>
             {!editing && (
               <button onClick={() => setEditing(true)} className="px-4 py-2 bg-white/20 rounded-lg flex items-center gap-2">

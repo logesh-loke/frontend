@@ -55,6 +55,21 @@ const AttendanceCard = () => {
     return Math.max(0, Math.floor(diff));
   };
 
+  // Helper function to get all dates in last 30 days
+  const getLast30DaysDates = () => {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      dates.push(date);
+    }
+    
+    return dates;
+  };
+
   const loadToday = async () => {
     try {
       const res = await apiFetch("/api/v1/attendance/today");
@@ -115,18 +130,47 @@ const AttendanceCard = () => {
       }
 
       const result = await res.json();
+      const apiData = result?.data || [];
 
-      const data = result?.data || [];
+      // Create a map of attendance data by date
+      const attendanceMap = new Map();
+      apiData.forEach((item) => {
+        if (item.date) {
+          const dateKey = new Date(item.date).toDateString();
+          attendanceMap.set(dateKey, item);
+        }
+      });
 
-      const formatted = data.map((item) => ({
-        Date: item.date,
-        ProductionHours: parseFloat(
-          item.working_hours || 0
-        ),
-        Status: item.status,
-      }));
+      // Get last 30 days dates
+      const last30Days = getLast30DaysDates();
+      
+      // Create complete data for last 30 days
+      const formattedData = last30Days.map((date) => {
+        const dateKey = date.toDateString();
+        const existingRecord = attendanceMap.get(dateKey);
+        
+        if (existingRecord) {
+          return {
+            Date: existingRecord.date,
+            ProductionHours: parseFloat(existingRecord.working_hours || 0),
+            Status: existingRecord.status,
+          };
+        } else {
+          // Return absent record for days without attendance
+          return {
+            Date: date.toISOString(),
+            ProductionHours: 0,
+            Status: "ABSENT",
+          };
+        }
+      });
 
-      setChartData(formatted);
+      // Sort by date (oldest to newest for chart)
+      const sortedData = formattedData.sort(
+        (a, b) => new Date(a.Date) - new Date(b.Date)
+      );
+
+      setChartData(sortedData);
     } catch (err) {
       console.error(err);
       setChartData([]);
@@ -228,6 +272,10 @@ const AttendanceCard = () => {
 
   const isIn = status === "in";
 
+  // Calculate chart statistics for display
+  const presentCount = chartData.filter(d => d.Status?.toUpperCase() === "PRESENT").length;
+  const absentCount = chartData.filter(d => d.Status?.toUpperCase() === "ABSENT").length;
+
   return (
     <div className="space-y-6">
       <div className="bg-white shadow-lg p-6 rounded-xl max-w-2xl border">
@@ -278,9 +326,9 @@ const AttendanceCard = () => {
             }
             className={`px-6 py-2 rounded-lg font-semibold text-white ${
               isIn
-                ? "bg-red-500"
-                : "bg-green-500"
-            } disabled:opacity-50`}
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-green-500 hover:bg-green-600"
+            } disabled:opacity-50 transition-colors`}
           >
             {loading
               ? "Processing..."
@@ -293,9 +341,13 @@ const AttendanceCard = () => {
         {status !== "idle" && (
           <>
             <div className="mt-5">
-              <div className="w-full bg-gray-200 h-3 rounded-full">
+              <div className="flex justify-between text-xs text-gray-600 mb-1">
+                <span>Progress to 9hrs target</span>
+                <span>{getProgress().toFixed(0)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
                 <div
-                  className="bg-orange-500 h-3 rounded-full transition-all"
+                  className="bg-gradient-to-r from-orange-400 to-orange-600 h-3 rounded-full transition-all duration-500"
                   style={{
                     width: `${getProgress()}%`,
                   }}
@@ -304,11 +356,11 @@ const AttendanceCard = () => {
             </div>
 
             <div className="mt-3 flex justify-between text-sm">
-              <p className="font-semibold">
+              <p className="font-semibold text-gray-700">
                 Working Hours:
               </p>
 
-              <p>
+              <p className="font-medium text-gray-900">
                 {Math.floor(
                   workingMinutes / 60
                 )}{" "}
@@ -319,14 +371,24 @@ const AttendanceCard = () => {
             {!canPunchOut() &&
               status === "in" && (
                 <p className="mt-2 text-xs text-orange-600">
-                  Punch out enabled after 3
-                  hours
+                  ⏰ Punch out enabled after 3 hours
                 </p>
               )}
+            
+            {status === "in" && workingMinutes >= 540 && (
+              <p className="mt-2 text-xs text-green-600">
+                🎉 Congratulations! You've reached the 9-hour target!
+              </p>
+            )}
           </>
         )}
       </div>
 
+      {/* Display chart info */}
+      <div className="text-sm text-gray-600 mb-2 px-1">
+        📊 Showing last 30 days: Present ({presentCount}) | Absent ({absentCount})
+      </div>
+      
       <AttendanceChart data={chartData} />
     </div>
   );

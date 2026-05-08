@@ -33,7 +33,7 @@ export default function GuestRoute({ children }) {
 
   // 🟣 CASE 3: Role-based redirect
   if (role === "admin") {
-    return <Navigate to="/admin-profile" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   if (role === "user") {

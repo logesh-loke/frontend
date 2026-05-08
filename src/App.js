@@ -9,7 +9,6 @@ import OtpLogin from "./Pages/OtpLogin";
 import AttendanceDashboard from "./Pages/Dashboard/AttendanceDashboard";
 
 import { Home } from "./Pages/Home/Home";
-// import AdminProfile from "./Pages/Admin/AdminProfile";
 
 import ProtectedRoute from "./Gaurd/Auth/ProtectedRoute";
 import GuestRoute from "./Gaurd/Auth/GuestRoute";
@@ -19,143 +18,145 @@ import Layout from "./Components/Layout";
 import AdminDashboard from "./Pages/Admin/AdminDashBoard/AdminDashboard";
 import AdminProfile from "./Pages/Admin/AdminProfile";
 import AdminUserAttendance from "./Components/Admin/UserAttendance";
-import AdminMonthlyAttendance from "./Pages/Admin/AdminDashBoard/MonthlyAttendance";
-import UserProfile  from "./Pages/Admin/AdminDashBoard/UserProfile";
+import AdminAllAttendance from "./Pages/Admin/AdminDashBoard/MonthlyAttendance";
+import UserProfile from "./Pages/Admin/AdminDashBoard/UserProfile";
+
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
 export default function App() {
   return (
-    <Routes>
-
-      {/* 🔓 GUEST ROUTES */}
-      <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-      <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-      <Route path="/forgotpassword" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
-      <Route path="/otp-login" element={<GuestRoute><OtpLogin /></GuestRoute>} />
-
-      {/* 🔒 USER ROUTES */}
-      <Route
-        path="/home"
-        element={
-          <ProtectedRoute allowedRoles={["user"]}>
-            <Layout>
-              <Home />
-            </Layout>
-          </ProtectedRoute>
-        }
+    <>
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        toastStyle={{ marginTop: "45vh" }}
       />
 
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute allowedRoles={["user"]}>
-            <Layout>
-              <Profile />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Routes>
 
-      {/*  FIXED: Attendance Route */}
-      <Route
-        path="/attendance-history"
-        element={
-          <ProtectedRoute allowedRoles={["user"]}>
-            <Layout>
-              <AttendanceDashboard />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+        {/* 🔓 GUEST ROUTES */}
+        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+        <Route path="/forgotpassword" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+        <Route path="/otp-login" element={<GuestRoute><OtpLogin /></GuestRoute>} />
 
-      {/* ADMIN ROUTE */}
-      <Route
-        path="/admin-dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Layout>
-              <AdminDashboard />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/home"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Layout>
-              <Home />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin-profile"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Layout>
-              <AdminProfile />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* ✅ FIXED: Attendance Route */}
-      <Route
-        path="/admin-user"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Layout>
-              <AdminUserAttendance/>
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-       <Route
-        path="/admin-history"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Layout>
-              <AdminMonthlyAttendance/>
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/user-profile"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Layout>
-              <UserProfile/>
-            </Layout>
-          </ProtectedRoute>
-        }
+        {/* 🔒 USER ROUTES */}
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute allowedRoles={["user"]}>
+              <Layout>
+                <Home />
+              </Layout>
+            </ProtectedRoute>
+          }
         />
 
-      <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={["user"]}>
+              <Layout>
+                <Profile />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to={localStorage.getItem("token") ? "/home" : "/login"}
-            replace
-          />
-        }
-      />
+        <Route
+          path="/attendance-history"
+          element={
+            <ProtectedRoute allowedRoles={["user"]}>
+              <Layout>
+                <AttendanceDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="*"
-        element={
-          <div className="flex items-center justify-center h-screen text-xl font-semibold">
-            404 - Page Not Found
-          </div>
-        }
-      />
+        {/* 👇 ADMIN ROUTES */}
 
-    </Routes>
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Layout>
+                <AdminDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin-profile"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Layout>
+                <AdminProfile />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin-user"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Layout>
+                <AdminUserAttendance />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ FIXED ROUTE (THIS WAS MISSING PARAM) */}
+        <Route
+          path="/admin-history"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Layout>
+                <AdminAllAttendance/>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/user-profile"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Layout>
+                <UserProfile />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/unauthorized" element={<Unauthorized />} />
+
+        {/* DEFAULT REDIRECT */}
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to={localStorage.getItem("token") ? "/home" : "/login"}
+              replace
+            />
+          }
+        />
+
+        {/* 404 */}
+        <Route
+          path="*"
+          element={
+            <div className="flex items-center justify-center h-screen text-xl font-semibold">
+              404 - Page Not Found
+            </div>
+          }
+        />
+
+      </Routes>
+    </>
   );
 }

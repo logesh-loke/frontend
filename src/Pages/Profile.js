@@ -179,11 +179,7 @@ function Profile() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border border-green-100">
-              <h3 className="text-lg font-bold text-green-800 mb-2">Account Status</h3>
-              <p className="text-green-600 text-sm">✓ Verified Account</p>
-              <p className="text-gray-600 text-xs mt-2">Your account is active and verified</p>
-            </div>
+            
           </div>
         </div>
       </div>
