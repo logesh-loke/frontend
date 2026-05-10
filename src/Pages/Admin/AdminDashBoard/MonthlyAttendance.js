@@ -17,13 +17,9 @@ const AdminAllAttendance = () => {
   const loadAttendance = async () => {
     try {
       setLoading(true);
-      // FIXED: Use the correct endpoint that exists in your backend
-      // Option 1: If you have a separate admin endpoint
-      const res = await apiFetch("/api/v1/admin/attendance/all");
       
-      // Option 2: If you don't have admin endpoint, fetch all users' attendance
-      // You might need to create this endpoint first
-      
+      const res = await apiFetch("/api/v1/admin/allattendance");
+  
       const result = await res.json();
 
       if (!res.ok) {
@@ -45,7 +41,7 @@ const AdminAllAttendance = () => {
 
     try {
       setDeletingId(id);
-      const res = await apiFetch(`/api/v1/attendance/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/v1/admin/allattendanceid}`, { method: "DELETE" });
       const result = await res.json();
 
       if (!res.ok) throw new Error(result?.message);

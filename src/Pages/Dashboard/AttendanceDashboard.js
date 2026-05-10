@@ -158,7 +158,7 @@ const AttendanceDashboard = () => {
 
   // ========================================
   // FORMATTERS
-  // ========================================
+  // ========================================   
 
   const formatDate = (date) =>
     date ? new Date(date).toLocaleDateString() : "--";
