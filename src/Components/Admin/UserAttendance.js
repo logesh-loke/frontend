@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../Services/Api";
-import { 
-  FaClock, 
-  FaSignInAlt, 
-  FaSignOutAlt, 
-  FaChartLine, 
-  FaUsers,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaExclamationTriangle 
-} from "react-icons/fa";
+import { FaClock, FaSignInAlt, FaSignOutAlt, FaChartLine, FaUsers,
+  FaCheckCircle, FaTimesCircle, FaExclamationTriangle } from "react-icons/fa";
 
 function AdminUserAttendance() {
   const [records, setRecords] = useState([]);
@@ -31,12 +23,11 @@ function AdminUserAttendance() {
         }
 
         const data = await res.json();
-        console.log(" API:", data);
+        console.log("API:", data);
 
         const attendanceData = data.data || [];
         setRecords(attendanceData);
 
-        // Calculate statistics
         const total = attendanceData.length;
         const present = attendanceData.filter(r => 
           r.attendance_status?.toLowerCase() === 'present'
@@ -149,7 +140,7 @@ function AdminUserAttendance() {
                 <div 
                   className="bg-green-500 rounded-full h-2 transition-all duration-500"
                   style={{ width: `${(stats.present / stats.total) * 100}%` }}
-                ></div>
+                />
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 {((stats.present / stats.total) * 100).toFixed(1)}% attendance rate
