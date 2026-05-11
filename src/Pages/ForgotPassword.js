@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import bg from "../Assets/bg-img.jpg";
 
 function ForgotPassword() {
@@ -21,8 +22,6 @@ function ForgotPassword() {
     password: "",
   });
 
-  const [success, setSuccess] = useState(false);
-
   // 🔥 loading states
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
@@ -35,6 +34,15 @@ function ForgotPassword() {
     if (otpLoading) return;
 
     if (!email.trim()) {
+      Swal.fire({
+        title: "Error!",
+        text: "Email or Phone required",
+        icon: "error",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true
+      });
       setErrors((p) => ({ ...p, email: "Email or Phone required"}));
       return;
     }
@@ -52,6 +60,16 @@ function ForgotPassword() {
 
       if (!res.ok) throw new Error(data.message);
 
+      Swal.fire({
+        title: "OTP Sent!",
+        text: "Please check your email for OTP",
+        icon: "success",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true
+      });
+
       setStep(2);
       setTimer(59);
       setCanResend(false);
@@ -66,6 +84,15 @@ function ForgotPassword() {
         return sendOtp(retry + 1);
       }
 
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to send OTP. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#d33",
+        confirmButtonText: "OK",
+        position: "center",
+        backdrop: true
+      });
       setErrors((p) => ({ ...p, email: "Failed to send OTP" }));
 
     } finally {
@@ -78,6 +105,15 @@ function ForgotPassword() {
     if (verifyLoading) return;
 
     if (!otp.trim()) {
+      Swal.fire({
+        title: "Error!",
+        text: "OTP required",
+        icon: "error",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true
+      });
       setErrors((p) => ({ ...p, otp: "OTP required" }));
       return;
     }
@@ -94,6 +130,15 @@ function ForgotPassword() {
       const data = await res.json();
 
       if (!res.ok) {
+        Swal.fire({
+          title: "Verification Failed!",
+          text: data.message || "Wrong OTP",
+          icon: "error",
+          confirmButtonColor: "#d33",
+          confirmButtonText: "Try Again",
+          position: "center",
+          backdrop: true
+        });
         setErrors((p) => ({
           ...p,
           otp: data.message || "Wrong OTP",
@@ -101,9 +146,28 @@ function ForgotPassword() {
         return;
       }
 
+      Swal.fire({
+        title: "OTP Verified!",
+        text: "Please set your new password",
+        icon: "success",
+        position: "center",
+        timer: 1500,
+        showConfirmButton: false,
+        backdrop: true
+      });
+
       setStep(3);
 
     } catch {
+      Swal.fire({
+        title: "Error!",
+        text: "Server error. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#d33",
+        confirmButtonText: "OK",
+        position: "center",
+        backdrop: true
+      });
       setErrors((p) => ({ ...p, otp: "Server error ❌" }));
     } finally {
       setVerifyLoading(false);
@@ -115,6 +179,15 @@ function ForgotPassword() {
     if (resetLoading) return;
 
     if (!newPassword.trim()) {
+      Swal.fire({
+        title: "Error!",
+        text: "Enter new password",
+        icon: "error",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true
+      });
       setErrors((p) => ({
         ...p,
         password: "Enter new password",
@@ -123,9 +196,35 @@ function ForgotPassword() {
     }
 
     if (newPassword !== confirmPassword) {
+      Swal.fire({
+        title: "Error!",
+        text: "Passwords do not match",
+        icon: "error",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true
+      });
       setErrors((p) => ({
         ...p,
         password: "Passwords do not match",
+      }));
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Swal.fire({
+        title: "Error!",
+        text: "Password must be at least 6 characters",
+        icon: "error",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true
+      });
+      setErrors((p) => ({
+        ...p,
+        password: "Password must be at least 6 characters",
       }));
       return;
     }
@@ -146,6 +245,15 @@ function ForgotPassword() {
       const data = await res.json();
 
       if (!res.ok) {
+        Swal.fire({
+          title: "Reset Failed!",
+          text: data.message || "Password reset failed",
+          icon: "error",
+          confirmButtonColor: "#d33",
+          confirmButtonText: "Try Again",
+          position: "center",
+          backdrop: true
+        });
         setErrors((p) => ({
           ...p,
           password: data.message || "Reset failed",
@@ -153,9 +261,35 @@ function ForgotPassword() {
         return;
       }
 
-      setSuccess(true);
+      // Show success message
+      Swal.fire({
+        title: "Password Reset Successfully!",
+        text: "Redirecting to login page...",
+        icon: "success",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true,
+        customClass: {
+          popup: "animate__animated animate__zoomIn"
+        }
+      });
+
+      // Redirect to login after success
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
 
     } catch {
+      Swal.fire({
+        title: "Error!",
+        text: "Server error. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#d33",
+        confirmButtonText: "OK",
+        position: "center",
+        backdrop: true
+      });
       setErrors((p) => ({
         ...p,
         password: "Server error ❌",
@@ -164,6 +298,53 @@ function ForgotPassword() {
       setResetLoading(false);
     }
   }
+
+  // ================= RESEND OTP =================
+  const resendOtp = async () => {
+    if (otpLoading) return;
+
+    try {
+      setOtpLoading(true);
+
+      const res = await fetch(`${BASE}/api/v1/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+
+      Swal.fire({
+        title: "OTP Resent!",
+        text: "Please check your email",
+        icon: "success",
+        position: "center",
+        timer: 2000,
+        showConfirmButton: false,
+        backdrop: true
+      });
+
+      setTimer(59);
+      setCanResend(false);
+
+    } catch (err) {
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to resend OTP",
+        icon: "error",
+        confirmButtonColor: "#d33",
+        confirmButtonText: "OK",
+        position: "center",
+        backdrop: true
+      });
+    } finally {
+      setOtpLoading(false);
+    }
+  };
 
   // ================= TIMER =================
   useEffect(() => {
@@ -178,16 +359,12 @@ function ForgotPassword() {
     return () => clearInterval(interval);
   }, [timer, step]);
 
-  // ================= REDIRECT =================
-  useEffect(() => {
-    if (success) {
-      const t = setTimeout(() => {
-        navigate("/login"); // ✅ go back to login
-      }, 1200);
-
-      return () => clearTimeout(t);
-    }
-  }, [success, navigate]);
+  // Format timer display
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div
@@ -207,10 +384,10 @@ function ForgotPassword() {
         {/* STEP 1 */}
         {step === 1 && (
           <>
-            <label className="text-sm"> Email </label>
+            <label className="text-sm font-medium text-gray-700">Email</label>
             <input
               placeholder="Enter your Email"
-              className="border px-4 py-2 w-full rounded-xl mb-2"
+              className="border px-4 py-2 w-full rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -225,8 +402,8 @@ function ForgotPassword() {
             <button
               onClick={() => sendOtp()}
               disabled={otpLoading}
-              className={`w-full py-2 rounded-xl text-white ${
-                otpLoading ? "bg-gray-400" : "bg-blue-600"
+              className={`w-full py-2 rounded-xl text-white font-semibold transition ${
+                otpLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
               {otpLoading ? "Sending..." : "Send OTP"}
@@ -237,28 +414,32 @@ function ForgotPassword() {
         {/* STEP 2 */}
         {step === 2 && (
           <>
-             <label className="text-sm"> Otp </label>
+            <label className="text-sm font-medium text-gray-700">OTP</label>
             <input
               placeholder="Enter OTP"
-              className="border px-4 py-2 w-full rounded-xl mb-2"
+              className="border px-4 py-2 w-full rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={otp}
               onChange={(e) => {
                 setOtp(e.target.value);
                 setErrors((p) => ({ ...p, otp: "" }));
               }}
+              maxLength={6}
             />
 
             {errors.otp && (
               <p className="text-red-500 text-sm mb-2">{errors.otp}</p>
             )}
 
-            <div className="flex justify-between text-sm mb-3">
-              <span>{timer > 0 ? `00:${timer}` : ""}</span>
+            <div className="flex justify-between items-center text-sm mb-3">
+              <span className={`font-mono ${timer > 0 ? "text-gray-600" : "text-gray-400"}`}>
+                {timer > 0 ? formatTime(timer) : "Expired"}
+              </span>
 
               {canResend && (
                 <button
-                  onClick={() => sendOtp()}
-                  className="text-blue-600"
+                  onClick={resendOtp}
+                  disabled={otpLoading}
+                  className="text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
                 >
                   Resend OTP
                 </button>
@@ -268,8 +449,8 @@ function ForgotPassword() {
             <button
               onClick={verifyOtp}
               disabled={verifyLoading}
-              className={`w-full py-2 rounded-xl text-white ${
-                verifyLoading ? "bg-gray-400" : "bg-green-600"
+              className={`w-full py-2 rounded-xl text-white font-semibold transition ${
+                verifyLoading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
               }`}
             >
               {verifyLoading ? "Verifying..." : "Verify OTP"}
@@ -280,19 +461,20 @@ function ForgotPassword() {
         {/* STEP 3 */}
         {step === 3 && (
           <>
-           <label className="text-sm">New Password</label>
+            <label className="text-sm font-medium text-gray-700">New Password</label>
             <input
               type="password"
               placeholder="New Password"
-              className="border px-4 py-2 w-full rounded-xl mb-2"
+              className="border px-4 py-2 w-full rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
-             <label className="text-sm"> Confirm password </label>
+            
+            <label className="text-sm font-medium text-gray-700 mt-2">Confirm Password</label>
             <input
               type="password"
               placeholder="Confirm Password"
-              className="border px-4 py-2 w-full rounded-xl mb-2"
+              className="border px-4 py-2 w-full rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
@@ -304,8 +486,8 @@ function ForgotPassword() {
             <button
               onClick={resetPassword}
               disabled={resetLoading}
-              className={`w-full py-2 rounded-xl text-white ${
-                resetLoading ? "bg-gray-400" : "bg-blue-600"
+              className={`w-full py-2 rounded-xl text-white font-semibold transition ${
+                resetLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
               {resetLoading ? "Updating..." : "Reset Password"}
@@ -313,48 +495,8 @@ function ForgotPassword() {
           </>
         )}
 
-        {/* SUCCESS */}
-        {success && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-    
-    {/* Popup Box */}
-    <div className="bg-white/90 backdrop-blur-md px-10 py-8 rounded-2xl shadow-2xl text-center animate-fadeIn scale-95 hover:scale-100 transition-all duration-300">
-
-      {/* Success Icon */}
-      <div className="flex justify-center mb-4">
-        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100">
-          <svg
-            className="w-8 h-8 text-green-600"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Title */}
-      <h2 className="text-green-600 font-bold text-2xl mb-2">
-        Password update
-      </h2>
-
-      {/* Subtitle */}
-      <p className="text-gray-500 text-sm">
-        Welcome back! Redirecting you...
-      </p>
-
-      {/* Loader bar */}
-      <div className="mt-5 w-full bg-gray-200 h-1 rounded-full overflow-hidden">
-        <div className="h-full bg-green-500 animate-progress"></div>
-      </div>
-      </div>
-      </div>
-        )}
-
         <p className="text-center mt-4 text-sm">
-          <Link to="/login" className="text-blue-600">
+          <Link to="/login" className="text-blue-600 hover:text-blue-700">
             Back to Login
           </Link>
         </p>

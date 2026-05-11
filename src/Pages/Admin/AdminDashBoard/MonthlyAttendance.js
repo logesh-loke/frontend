@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../../Services/Api";
 import { toast } from "react-toastify";
-import { FaEye, FaEdit, FaTrash, FaSearch, FaUser, FaCalendarAlt } from "react-icons/fa";
+import { FaEye, FaEdit, FaTrash, FaSearch, FaUser, FaCalendarAlt, FaClock, FaHourglassHalf } from "react-icons/fa";
 
 const AdminAllAttendance = () => {
   const [attendance, setAttendance] = useState([]);
@@ -17,14 +17,25 @@ const AdminAllAttendance = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await apiFetch("/api/v1/admin/allattendance", {
+      
+      // FIXED: Correct endpoint
+      const res = await apiFetch("/api/v1/admin/allattendance ", {
         method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${token}` 
+        }
       });
+      
       const result = await res.json();
+      
       if (!res.ok) throw new Error(result?.message || "Failed to load attendance");
+      
       console.log("Attendance Response:", result?.data);
+      
+      // Data is directly in result.data as an array
       setAttendance(result?.data || []);
+      
     } catch (err) {
       console.log(err);
       toast.error(err.message || "Something went wrong");
@@ -38,10 +49,16 @@ const AdminAllAttendance = () => {
     try {
       setDeletingId(id);
       const token = localStorage.getItem("token");
-      const res = await apiFetch(`localhost:8080/api/v1/delete/attendance/1${id}`, {
+      
+      // FIXED: Correct delete endpoint (remove the broken URL)
+      const res = await apiFetch(`/api/v1/admin/attendance/${id}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${token}` 
+        }
       });
+      
       const result = await res.json();
       if (!res.ok) throw new Error(result?.message || "Delete failed");
       toast.success("Attendance deleted successfully");
@@ -67,35 +84,76 @@ const AdminAllAttendance = () => {
   };
 
   const filterByMonth = (dateString, selectedMonth) => {
-    if (!dateString) return true;
+    if (!dateString) return false;
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return true;
+      if (isNaN(date.getTime())) return false;
       const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       return yearMonth === selectedMonth;
-    } catch { return true; }
+    } catch { return false; }
   };
 
-  const filteredAttendance = attendance.filter((d) => {
-    const attendanceDate = d.date || d.attendanceDate || d.createdAt || d.punchIn;
+  const filteredAttendance = attendance.filter((record) => {
+    // Use punch_in as date since that's what's available
+    const attendanceDate = record.punch_in;
+    if (!attendanceDate) return false;
+    
     const matchesMonth = filterByMonth(attendanceDate, month);
-    const matchesStatus = statusFilter === "ALL" || d.status?.toUpperCase() === statusFilter;
-    const employeeName = `${d.user?.firstName || ""} ${d.user?.lastName || ""}`.toLowerCase();
-    const email = (d.user?.email || "").toLowerCase();
-    const matchesSearch = searchTerm === "" || employeeName.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "ALL" || record.attendance_status?.toUpperCase() === statusFilter;
+    
+    // FIXED: Use direct fields from the record (not nested user object)
+    const employeeName = `${record.firstname || ""} ${record.lastname || ""}`.toLowerCase();
+    const email = (record.email || "").toLowerCase();
+    const matchesSearch = searchTerm === "" || 
+        employeeName.includes(searchTerm.toLowerCase()) || 
+        email.includes(searchTerm.toLowerCase());
+    
     return matchesMonth && matchesStatus && matchesSearch;
   });
 
-  const totalPresent = filteredAttendance.filter(d => d.status?.toUpperCase() === "PRESENT").length;
-  const totalAbsent = filteredAttendance.filter(d => d.status?.toUpperCase() === "ABSENT").length;
-  const totalLate = filteredAttendance.filter(d => d.status?.toUpperCase() === "LATE").length;
+  const totalPresent = filteredAttendance.filter(r => r.attendance_status?.toUpperCase() === "PRESENT").length;
+  const totalAbsent = filteredAttendance.filter(r => r.attendance_status?.toUpperCase() === "ABSENT").length;
+  const totalLate = filteredAttendance.filter(r => r.attendance_status?.toUpperCase() === "LATE").length;
+  
   const avgWorkingHours = filteredAttendance.length > 0 
-    ? (filteredAttendance.reduce((sum, d) => sum + (parseFloat(d.workingHours) || 0), 0) / filteredAttendance.length).toFixed(1)
+    ? (filteredAttendance.reduce((sum, r) => sum + (parseFloat(r.working_hours) || 0), 0) / filteredAttendance.length).toFixed(1)
     : "0.0";
 
-  const formatDate = (date) => date ? new Date(date).toLocaleDateString() : "--";
-  const formatTime = (time) => time ? new Date(time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--";
-  const getEmployeeName = (user) => user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || "No Name" : "Unknown User";
+  const formatDate = (date) => {
+    if (!date) return "--";
+    try {
+      return new Date(date).toLocaleDateString();
+    } catch {
+      return "--";
+    }
+  };
+  
+  const formatTime = (time) => {
+    if (!time) return "--";
+    try {
+      return new Date(time).toLocaleTimeString([], { 
+        hour: "2-digit", 
+        minute: "2-digit",
+        hour12: true 
+      });
+    } catch {
+      return "--";
+    }
+  };
+  
+  const getEmployeeName = (record) => {
+    return `${record.firstname || ""} ${record.lastname || ""}`.trim() || "Unknown User";
+  };
+
+  const getLateMinutesBadge = (minutes) => {
+    if (!minutes || minutes === 0) return null;
+    return (
+      <span className="inline-flex items-center gap-1 ml-2 text-xs text-yellow-600">
+        <FaClock size={10} />
+        Late: {minutes}min
+      </span>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -108,8 +166,12 @@ const AdminAllAttendance = () => {
               <p className="mt-1 text-blue-100">Admin Attendance Dashboard</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => navigate("/admin/dashboard")} className="rounded-lg bg-white/20 px-4 py-2 text-white transition hover:bg-white/30">Dashboard</button>
-              <button onClick={loadAttendance} className="rounded-lg bg-white/20 px-4 py-2 text-white transition hover:bg-white/30">Refresh</button>
+              <button onClick={() => navigate("/admin/dashboard")} className="rounded-lg bg-white/20 px-4 py-2 text-white transition hover:bg-white/30">
+                Dashboard
+              </button>
+              <button onClick={loadAttendance} className="rounded-lg bg-white/20 px-4 py-2 text-white transition hover:bg-white/30">
+                Refresh
+              </button>
             </div>
           </div>
         </div>
@@ -139,13 +201,28 @@ const AdminAllAttendance = () => {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search by user name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input 
+                type="text" 
+                placeholder="Search by name or email..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              />
             </div>
             <div className="relative">
               <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input 
+                type="month" 
+                value={month} 
+                onChange={(e) => setMonth(e.target.value)} 
+                className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              />
             </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full rounded-lg border px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)} 
+              className="w-full rounded-lg border px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
               <option value="ALL">All Status</option>
               <option value="PRESENT">Present</option>
               <option value="ABSENT">Absent</option>
@@ -153,7 +230,9 @@ const AdminAllAttendance = () => {
               <option value="HALF-DAY">Half Day</option>
             </select>
           </div>
-          <div className="mt-4 text-sm text-gray-600">Showing {filteredAttendance.length} of {attendance.length} records</div>
+          <div className="mt-4 text-sm text-gray-600">
+            Showing {filteredAttendance.length} of {attendance.length} records
+          </div>
         </div>
 
         {/* Table */}
@@ -185,32 +264,66 @@ const AdminAllAttendance = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredAttendance.map((d) => (
-                    <tr key={d._id} className="border-b transition-colors hover:bg-gray-50">
+                  filteredAttendance.map((record) => (
+                    <tr key={record.id} className="border-b transition-colors hover:bg-gray-50">
                       <td className="p-4">
                         <div>
-                          <div className="font-medium text-gray-900">{getEmployeeName(d.user)}</div>
-                          <div className="text-xs text-gray-500">{d.user?.email || "No Email"}</div>
+                          <div className="font-medium text-gray-900">
+                            {getEmployeeName(record)}
+                            {record.lateMinutes > 0 && (
+                              <span className="ml-2 inline-flex items-center gap-1 text-xs text-yellow-600">
+                                <FaClock size={10} />
+                                Late: {record.lateMinutes}min
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">{record.email || "No Email"}</div>
                         </div>
-                      </td>
+                       </td>
                       <td className="p-4">
-                        <div className="text-sm text-gray-900">{formatDate(d.date || d.attendanceDate || d.createdAt || d.punchIn)}</div>
-                      </td>
-                      <td className="p-4 text-sm text-gray-900">{formatTime(d.punchIn)}</td>
-                      <td className="p-4 text-sm text-gray-900">{formatTime(d.punchOut)}</td>
-                      <td className="p-4 text-sm font-medium text-gray-900">{parseFloat(d.workingHours || 0).toFixed(1)} hrs</td>
+                        <div className="text-sm text-gray-900">{formatDate(record.punch_in)}</div>
+                        <div className="text-xs text-gray-400">
+                          {new Date(record.punch_in).toLocaleDateString(undefined, { weekday: 'short' })}
+                        </div>
+                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white ${getStatusColor(d.status)}`}>{d.status || "--"}</span>
-                      </td>
+                        <div className="text-sm font-medium text-gray-900">{formatTime(record.punch_in)}</div>
+                       </td>
+                      <td className="p-4">
+                        <div className="text-sm text-gray-900">
+                          {record.punch_out ? formatTime(record.punch_out) : "--"}
+                        </div>
+                        {record.earlyLogoutMinutes > 0 && (
+                          <div className="text-xs text-orange-600">Early: {record.earlyLogoutMinutes}min</div>
+                        )}
+                       </td>
+                      <td className="p-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {parseFloat(record.working_hours || 0).toFixed(1)} hrs
+                        </div>
+                        {parseFloat(record.working_hours) < 8 && parseFloat(record.working_hours) > 0 && (
+                          <div className="text-xs text-yellow-600">
+                            Short: {(8 - parseFloat(record.working_hours)).toFixed(1)} hrs
+                          </div>
+                        )}
+                       </td>
+                      <td className="p-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white ${getStatusColor(record.attendance_status)}`}>
+                          {record.attendance_status || "--"}
+                        </span>
+                       </td>
                       <td className="p-4">
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => navigate(`/admin-history/${d.user?._id}`)} className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600"><FaEye size={14} /></button>
-                          <button onClick={() => navigate(`/admin/edit-attendance/${d._id}`)} className="rounded-lg bg-yellow-500 p-2 text-white transition-colors hover:bg-yellow-600"><FaEdit size={14} /></button>
-                          <button onClick={() => deleteAttendance(d._id)} disabled={deletingId === d._id} className="rounded-lg bg-red-500 p-2 text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50">
-                            {deletingId === d._id ? <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div> : <FaTrash size={14} />}
+                          <button 
+                            onClick={() => navigate(`/admin-history/${record.user_id}`)} 
+                            className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600"
+                            title="View History"
+                          >
+                            <FaEye size={14} />
                           </button>
+                           
                         </div>
-                      </td>
+                       </td>
                     </tr>
                   ))
                 )}

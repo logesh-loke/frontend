@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import bg from "../Assets/bg-img.jpg";
 
 function Login() {
@@ -66,7 +67,7 @@ function Login() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ identifier, password }),
-          credentials: "include", // ✅ FIXED
+          credentials: "include",
         },
         3
       );
@@ -88,19 +89,57 @@ function Login() {
         setSuccess(true);
         submittedRef.current = false;
 
+        // Show SweetAlert success message (CENTERED)
+        Swal.fire({
+          title: "Login Successful!",
+          text: `Welcome back, ${userInfo.firstname || userInfo.name || "User"}!`,
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false,
+          position: "center",
+          background: "#fff",
+          backdrop: true,
+          allowOutsideClick: false,
+          customClass: {
+            popup: "animate__animated animate__zoomIn"
+          }
+        });
+
         // 🔁 Redirect based on role
         setTimeout(() => {
           if (role === "admin") {
             navigate("/admin-dashboard");
           } else {
-            navigate("/profile");
+            navigate("/home");
           }
-        }, 800);
+        }, 2000);
       } else {
+        // Show error alert (CENTERED)
+        Swal.fire({
+          title: "Login Failed!",
+          text: data.message || "Invalid credentials",
+          icon: "error",
+          confirmButtonColor: "#d33",
+          confirmButtonText: "Try Again",
+          position: "center",
+          backdrop: true,
+          allowOutsideClick: false
+        });
         setErrors((prev) => ({ ...prev, password: data.message }));
         submittedRef.current = false;
       }
     } catch (error) {
+      // Show server error alert (CENTERED)
+      Swal.fire({
+        title: "Server Error!",
+        text: "Please try again later",
+        icon: "error",
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "OK",
+        position: "center",
+        backdrop: true,
+        allowOutsideClick: false
+      });
       setErrors((prev) => ({
         ...prev,
         password: "Server error. Please try again.",
@@ -204,17 +243,6 @@ function Login() {
               {loginLoading ? "Logging in..." : "Login"}
             </button>
           </>
-        )}
-
-        {/* Success Popup */}
-        {success && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/50">
-            <div className="bg-white px-8 py-6 rounded-xl text-center">
-              <h2 className="text-green-600 font-bold text-xl">
-                Login Successful
-              </h2>
-            </div>
-          </div>
         )}
 
         <p className="text-sm text-center mt-3">

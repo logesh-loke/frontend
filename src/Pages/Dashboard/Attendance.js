@@ -368,12 +368,7 @@ const AttendanceCard = () => {
               </p>
             </div>
 
-            {!canPunchOut() &&
-              status === "in" && (
-                <p className="mt-2 text-xs text-orange-600">
-                  ⏰ Punch out enabled after 3 hours
-                </p>
-              )}
+            
             
             {status === "in" && workingMinutes >= 540 && (
               <p className="mt-2 text-xs text-green-600">
