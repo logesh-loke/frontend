@@ -22,6 +22,14 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+
+    const [userRole, setUserRole] = useState("");
+        useEffect(() => {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user) {
+          setUserRole(user.role);
+        }
+      }, []);
   // 🔐 LOGOUT
   const handleLogout = async () => {
     await fetch("http://localhost:8080/api/v1/logout", {
@@ -75,7 +83,7 @@ const Header = () => {
 
             {/* 👤 COMMON LINK */}
             <Link
-              to="/admin-profile"
+              to={userRole === "admin" ? "/admin-profile" : "/profile"}
               onClick={() => setOpen(false)}
               className="block px-4 py-2 hover:bg-gray-100 text-sm"
             >
