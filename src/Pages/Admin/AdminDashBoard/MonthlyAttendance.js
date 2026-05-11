@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../../Services/Api";
 import { toast } from "react-toastify";
-import { FaEye, FaEdit, FaTrash, FaSearch, FaUser, FaCalendarAlt, FaClock, FaHourglassHalf } from "react-icons/fa";
+import { FaEye, FaEdit, FaTrash, FaSearch, FaUser, FaCalendarAlt, FaClock, FaHourglassHalf, FaDatabase } from "react-icons/fa";
+import AttendanceHistoryModal from "../AdminDashBoard/Components/AttendanceHistoryModal";
 
 const AdminAllAttendance = () => {
   const [attendance, setAttendance] = useState([]);
@@ -11,6 +12,8 @@ const AdminAllAttendance = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const navigate = useNavigate();
 
   const loadAttendance = async () => {
@@ -18,8 +21,7 @@ const AdminAllAttendance = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       
-      // FIXED: Correct endpoint
-      const res = await apiFetch("/api/v1/admin/allattendance ", {
+      const res = await apiFetch("/api/v1/admin/allattendance", {
         method: "GET",
         headers: { 
           "Content-Type": "application/json", 
@@ -32,8 +34,6 @@ const AdminAllAttendance = () => {
       if (!res.ok) throw new Error(result?.message || "Failed to load attendance");
       
       console.log("Attendance Response:", result?.data);
-      
-      // Data is directly in result.data as an array
       setAttendance(result?.data || []);
       
     } catch (err) {
@@ -50,7 +50,6 @@ const AdminAllAttendance = () => {
       setDeletingId(id);
       const token = localStorage.getItem("token");
       
-      // FIXED: Correct delete endpoint (remove the broken URL)
       const res = await apiFetch(`/api/v1/admin/attendance/${id}`, {
         method: "DELETE",
         headers: { 
@@ -69,6 +68,16 @@ const AdminAllAttendance = () => {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const openHistoryModal = (data) => {
+    setSelectedUser(data);
+    setModalOpen(true);
+  };
+
+  const closeHistoryModal = () => {
+    setModalOpen(false);
+    setSelectedUser(null);
   };
 
   useEffect(() => { loadAttendance(); }, []);
@@ -94,14 +103,12 @@ const AdminAllAttendance = () => {
   };
 
   const filteredAttendance = attendance.filter((record) => {
-    // Use punch_in as date since that's what's available
     const attendanceDate = record.punch_in;
     if (!attendanceDate) return false;
     
     const matchesMonth = filterByMonth(attendanceDate, month);
     const matchesStatus = statusFilter === "ALL" || record.attendance_status?.toUpperCase() === statusFilter;
     
-    // FIXED: Use direct fields from the record (not nested user object)
     const employeeName = `${record.firstname || ""} ${record.lastname || ""}`.toLowerCase();
     const email = (record.email || "").toLowerCase();
     const matchesSearch = searchTerm === "" || 
@@ -145,15 +152,7 @@ const AdminAllAttendance = () => {
     return `${record.firstname || ""} ${record.lastname || ""}`.trim() || "Unknown User";
   };
 
-  const getLateMinutesBadge = (minutes) => {
-    if (!minutes || minutes === 0) return null;
-    return (
-      <span className="inline-flex items-center gap-1 ml-2 text-xs text-yellow-600">
-        <FaClock size={10} />
-        Late: {minutes}min
-      </span>
-    );
-  };
+  const token = localStorage.getItem("token");
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -252,7 +251,7 @@ const AdminAllAttendance = () => {
                   <th className="p-4 text-left text-sm font-semibold text-gray-700">Punch Out</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-700">Hours</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                  <th className="p-4 text-center text-sm font-semibold text-gray-700">Actions</th>
+                  <th className="p-4 text-center text-sm font-semibold text-gray-700">Monthly Attendance</th>
                 </tr>
               </thead>
               <tbody>
@@ -315,16 +314,15 @@ const AdminAllAttendance = () => {
                       <td className="p-4">
                         <div className="flex justify-center gap-2">
                           <button 
-                            onClick={() => navigate(`/admin-history/${record.user_id}`)} 
-                            className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600"
-                            title="View History"
+                            onClick={() => openHistoryModal(record)} 
+                            className="rounded-lg bg-green-500 p-2 text-white transition-colors hover:bg-green-600"
+                            title="View 30 Days History"
                           >
-                            <FaEye size={14} />
+                            <FaCalendarAlt size={14} />
                           </button>
-                           
                         </div>
                        </td>
-                    </tr>
+                     </tr>
                   ))
                 )}
               </tbody>
@@ -337,6 +335,14 @@ const AdminAllAttendance = () => {
           Total Records: {filteredAttendance.length} | Last updated: {new Date().toLocaleString()}
         </div>
       </div>
+
+      {/* Modal Component */}
+      <AttendanceHistoryModal 
+        isOpen={modalOpen}
+        onClose={closeHistoryModal}
+        user={selectedUser}
+        token={token}
+      />
     </div>
   );
 };

@@ -1,16 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../Services/Api";
-import { 
-  FaCalendarCheck, 
-  FaCalendarTimes, 
-  FaChartLine, 
-  FaFire, 
-  FaClock, 
-  FaSignInAlt, 
-  FaSignOutAlt,
-  FaHourglassHalf,
-  FaFilter
-} from "react-icons/fa";
+import { FaCalendarCheck, FaCalendarTimes, FaChartLine, FaFire, FaClock, FaSignInAlt, FaSignOutAlt,FaHourglassHalf,FaFilter} from "react-icons/fa";
 
 const AttendanceDashboard = () => {
   const [history, setHistory] = useState([]);
