@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../../Services/Api";
 import { toast } from "react-toastify";
 import { 
-  FaEye, FaEdit, FaTrash, FaSearch, FaUser, FaCalendarAlt, 
-  FaClock, FaHourglassHalf, FaDatabase, FaSync, FaHome,
-  FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaDownload
+  FaSearch, FaUser, FaCalendarAlt, 
+  FaClock, FaSync, FaHome,
+  FaCheckCircle, FaTimesCircle, FaExclamationTriangle
 } from "react-icons/fa";
 import AttendanceHistoryModal from "../AdminDashBoard/Components/AttendanceHistoryModal";
 
@@ -50,7 +50,6 @@ const AdminAllAttendance = () => {
   };
 
   const openHistoryModal = (record) => {
-    // Set selected user data - the modal will fetch its own data
     setSelectedUser(record);
     setModalOpen(true);
   };
@@ -64,30 +63,6 @@ const AdminAllAttendance = () => {
     setRefreshing(true);
     await loadAttendance();
     toast.success("Data refreshed successfully");
-  };
-
-  const exportToCSV = () => {
-    const headers = ["Employee Name", "Email", "Date", "Punch In", "Punch Out", "Working Hours", "Status", "Late Minutes"];
-    const csvData = filteredAttendance.map(r => [
-      getEmployeeName(r),
-      r.email || "",
-      formatDate(r.punch_in),
-      formatTime(r.punch_in),
-      formatTime(r.punch_out),
-      parseFloat(r.working_hours || 0).toFixed(1),
-      r.attendance_status || "--",
-      r.lateMinutes || 0
-    ]);
-    
-    const csvContent = [headers, ...csvData].map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `attendance_${month}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Export successful!");
   };
 
   useEffect(() => { loadAttendance(); }, []);
@@ -104,9 +79,9 @@ const AdminAllAttendance = () => {
 
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
-      case "PRESENT": return <FaCheckCircle className="text-green-500" size={14} />;
-      case "ABSENT": return <FaTimesCircle className="text-red-500" size={14} />;
-      case "LATE": return <FaExclamationTriangle className="text-yellow-500" size={14} />;
+      case "PRESENT": return ;
+      case "ABSENT": return ;
+      case "LATE": return ;
       default: return null;
     }
   };
@@ -137,7 +112,6 @@ const AdminAllAttendance = () => {
     return matchesMonth && matchesStatus && matchesSearch;
   });
 
-  // Get unique users for statistics
   const uniqueUsers = [...new Map(filteredAttendance.map(item => [item.userId || item.id, item])).values()];
   
   const totalPresent = filteredAttendance.filter(r => r.attendance_status?.toUpperCase() === "PRESENT").length;
@@ -179,40 +153,13 @@ const AdminAllAttendance = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
       <div className="mx-auto max-w-7xl">
-        {/* Action Buttons */}
-        <div className="mb-6 flex justify-end gap-3">
-          <button 
-            onClick={refreshData} 
-            disabled={refreshing}
-            className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition hover:bg-gray-200 disabled:opacity-50"
-          >
-            <FaSync className={refreshing ? "animate-spin" : ""} size={14} />
-            Refresh
-          </button>
-          <button 
-            onClick={() => navigate("/admin/dashboard")} 
-            className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white transition hover:bg-blue-600"
-          >
-            <FaHome size={14} />
-            Dashboard
-          </button>
-        </div>
-
+      
         <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-white">All Attendance</h1>
-                <p className="mt-1 text-blue-100">Admin Attendance Dashboard</p>
-              </div>
-              <button 
-                onClick={exportToCSV}
-                className="flex items-center gap-2 rounded-lg bg-white/20 px-4 py-2 text-white transition hover:bg-white/30"
-              >
-                <FaDownload size={14} />
-                Export CSV
-              </button>
+            <div>
+              <h1 className="text-3xl font-bold text-white">All Attendance</h1>
+              <p className="mt-1 text-blue-100">Admin Attendance Dashboard</p>
             </div>
           </div>
 
@@ -266,7 +213,6 @@ const AdminAllAttendance = () => {
                 <option value="ALL">All Status</option>
                 <option value="PRESENT">Present</option>
                 <option value="ABSENT">Absent</option>
-                <option value="LATE">Late</option>
                 <option value="HALF-DAY">Half Day</option>
               </select>
               {(searchTerm || statusFilter !== "ALL") && (
@@ -297,7 +243,7 @@ const AdminAllAttendance = () => {
               <table className="w-full min-w-[900px]">
                 <thead className="border-b-2 border-gray-200 bg-gray-50">
                   <tr>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Employee</th>
+                    <th className="p-4 text-left text-sm font-semibold text-gray-700">User</th>
                     <th className="p-4 text-left text-sm font-semibold text-gray-700">Date</th>
                     <th className="p-4 text-left text-sm font-semibold text-gray-700">Punch In</th>
                     <th className="p-4 text-left text-sm font-semibold text-gray-700">Punch Out</th>
@@ -322,38 +268,38 @@ const AdminAllAttendance = () => {
                           <div>
                             <div className="font-medium text-gray-900">
                               {getEmployeeName(record)}
-                              {record.lateMinutes > 0 && (
-                                <span className="ml-2 inline-flex items-center gap-1 text-xs text-yellow-600">
-                                  <FaClock size={10} />
-                                  Late: {record.lateMinutes}min
-                                </span>
-                              )}
+                              
                             </div>
                             <div className="text-xs text-gray-500">{record.email || "No Email"}</div>
                           </div>
-                         </td>
+                        </td>
                         <td className="p-4">
                           <div className="text-sm text-gray-900">{formatDate(record.punch_in)}</div>
+                         
                           <div className="text-xs text-gray-400">
                             {new Date(record.punch_in).toLocaleDateString(undefined, { weekday: 'short' })}
                           </div>
-                         </td>
+
+                        </td>
                         <td className="p-4">
                           <div className="text-sm font-medium text-gray-900">{formatTime(record.punch_in)}</div>
-                         </td>
+                           {record.lateMinutes > 0 && (
+                            <div className="text-xs text-orange-500">Late : {record.lateMinutes}min</div>
+                          )}
+                        </td>
                         <td className="p-4">
                           <div className="text-sm text-gray-900">
                             {record.punch_out ? formatTime(record.punch_out) : "--"}
                           </div>
                           {record.earlyLogoutMinutes > 0 && (
-                            <div className="text-xs text-orange-600">Early: {record.earlyLogoutMinutes}min</div>
+                            <div className="text-xs text-red-600">Early: {record.earlyLogoutMinutes}min</div>
                           )}
-                         </td>
+                        </td>
                         <td className="p-4">
                           <div className="text-sm font-medium text-gray-900">
                             {parseFloat(record.working_hours || 0).toFixed(1)} hrs
                           </div>
-                         </td>
+                        </td>
                         <td className="p-4">
                           <div className="flex items-center gap-1">
                             {getStatusIcon(record.attendance_status)}
@@ -361,19 +307,19 @@ const AdminAllAttendance = () => {
                               {record.attendance_status || "--"}
                             </span>
                           </div>
-                         </td>
+                        </td>
                         <td className="p-4">
                           <div className="flex justify-center">
                             <button 
                               onClick={() => openHistoryModal(record)} 
                               className="rounded-lg bg-green-500 p-2 text-white transition-colors hover:bg-green-600"
-                              title="View 30 Days History"
+                              title="View 30 Days History"  
                             >
                               <FaCalendarAlt size={14} />
                             </button>
                           </div>
-                         </td>
-                       </tr>
+                        </td>
+                      </tr>
                     ))
                   )}
                 </tbody>
@@ -387,7 +333,7 @@ const AdminAllAttendance = () => {
           </div>
         </div>
 
-        {/* Modal Component - Only pass user and token, modal handles its own data fetching */}
+        {/* Modal Component */}
         <AttendanceHistoryModal 
           isOpen={modalOpen}
           onClose={closeHistoryModal}

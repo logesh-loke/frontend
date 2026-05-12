@@ -116,7 +116,7 @@ function AdminUserAttendance() {
           <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-medium">Total Employees</p>
+                <p className="text-gray-500 text-sm font-medium">Total Users</p>
                 <p className="text-3xl font-bold text-gray-800 mt-2">{stats.total}</p>
               </div>
               <div className="bg-blue-100 rounded-full p-3">
@@ -178,7 +178,7 @@ function AdminUserAttendance() {
           <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
             <h2 className="text-lg font-semibold text-gray-800">Attendance Details</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Showing {records.length} employee{records.length !== 1 ? 's' : ''}
+              Showing {records.length} User{records.length !== 1 ? 's' : ''}
             </p>
           </div>
 
@@ -186,7 +186,7 @@ function AdminUserAttendance() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Employee</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Punch In</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Punch Out</th>
@@ -246,13 +246,13 @@ function AdminUserAttendance() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {parseInt(r.earlyLogout) > 0 ? (
+                        {parseInt(r.earlyLogoutMinutes) > 0 ? (
                           <span className="inline-flex items-center gap-1 text-sm font-medium text-orange-600">
                             <FaExclamationTriangle size={12} />
-                            {r.earlyLogout} min
+                            {r.earlyLogoutMinutes} min
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-400">Full day</span>
+                          <span className="text-sm text-gray-400"> Early Logout </span>
                         )}
                       </td>
                     </tr>
@@ -263,7 +263,7 @@ function AdminUserAttendance() {
                       <div className="flex flex-col items-center gap-3">
                         <FaClock className="text-gray-400 text-5xl" />
                         <p className="text-gray-500 text-lg">No attendance records found </p>
-                        <p className="text-gray-400 text-sm">No employees have checked in today</p>
+                        <p className="text-gray-400 text-sm">No user have checked in today</p>
                       </div>
                     </td>
                   </tr>

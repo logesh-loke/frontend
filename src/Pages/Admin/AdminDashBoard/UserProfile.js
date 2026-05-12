@@ -252,7 +252,7 @@ function AdminUsersTable() {
               <div className="flex gap-2">
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-xl">
                   <FaUserTag className="text-blue-600 text-sm" />
-                  <span className="text-sm font-medium text-blue-700">{stats.employees} Employees</span>
+                  <span className="text-sm font-medium text-blue-700">{stats.employees} Users</span>
                 </div>
               </div>
             </div>
