@@ -223,7 +223,7 @@ const AdminAllAttendance = () => {
               )}
             </div>
             <div className="mt-4 text-sm text-gray-600">
-              Showing {filteredAttendance.length} of {attendance.length} records | {uniqueUsers.length} unique employees
+              Showing {filteredAttendance.length} of {attendance.length} records | {uniqueUsers.length} Users
             </div>
           </div>
 
