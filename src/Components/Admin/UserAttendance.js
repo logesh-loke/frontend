@@ -262,7 +262,7 @@ function AdminUserAttendance() {
                     <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <FaClock className="text-gray-400 text-5xl" />
-                        <p className="text-gray-500 text-lg">No attendance records found</p>
+                        <p className="text-gray-500 text-lg">No attendance records found </p>
                         <p className="text-gray-400 text-sm">No employees have checked in today</p>
                       </div>
                     </td>
