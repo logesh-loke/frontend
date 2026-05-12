@@ -17,7 +17,6 @@ import Unauthorized from "./Gaurd/Auth/Unauthorized";
 
 import Layout from "./Components/Layout";
 
-import AdminDashboard from "./Pages/Admin/AdminDashBoard/AdminDashboard";
 import AdminProfile from "./Pages/Admin/AdminProfile";
 import AdminUserAttendance from "./Components/Admin/UserAttendance";
 import AdminAllAttendance from "./Pages/Admin/AdminDashBoard/MonthlyAttendance";
@@ -149,8 +148,6 @@ export default function App() {
 
         {/*ADMIN ROUTE */}
 
-        
-
         <Route
           path="/admin-profile"
           element={
@@ -160,7 +157,7 @@ export default function App() {
                 <AdminProfile />
               </Layout>
             </ProtectedRoute>
-          }/>
+          }/>        
 
         <Route
           path="/admin-user"
