@@ -52,7 +52,7 @@ export default function App() {
 
     // ADMIN
     if (role === "admin") {
-      return "/admin-dashboard";
+      return "/user-profile";
     }
 
     // USER

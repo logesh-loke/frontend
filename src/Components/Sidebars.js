@@ -12,7 +12,7 @@ const Sidebar = () => {
     { name: "Profile", path: "/profile" },
   ];
 
-  //  ADMIN MENU
+  //  ADMIN MENU  
   const adminMenu = [
     { name: "User Profile", path: "/user-profile"},
     { name: "Today Attendance", path: "/admin-user" },

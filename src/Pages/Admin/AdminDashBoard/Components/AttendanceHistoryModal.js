@@ -21,11 +21,15 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
   }, [isOpen, user]);
 
   const fetchUserHistory = async () => {
+    if (!user?.id) {
+      toast.error("User ID not found");
+      return;
+    }
+
     try {
       setLoading(true);
-      // Get user ID from the user object      
-      // OPTION 1: Using path parameter
-      const res = await apiFetch("/api/v1/attendance/history/", {
+      // Fixed API endpoint with userId parameter
+      const res = await apiFetch(`/api/v1/admin/attendance/monthly/${user.id}`, {
         method: "GET",
         headers: { 
           "Content-Type": "application/json",
