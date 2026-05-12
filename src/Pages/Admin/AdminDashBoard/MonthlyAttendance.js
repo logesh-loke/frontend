@@ -159,7 +159,6 @@ const AdminAllAttendance = () => {
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
             <div>
               <h1 className="text-3xl font-bold text-white">All Attendance</h1>
-              <p className="mt-1 text-blue-100">Admin Attendance Dashboard</p>
             </div>
           </div>
 
@@ -210,7 +209,6 @@ const AdminAllAttendance = () => {
                 <option value="ALL">All Status</option>
                 <option value="PRESENT">Present</option>
                 <option value="ABSENT">Absent</option>
-                <option value="HALF-DAY">Half Day</option>
               </select>
               {(searchTerm || statusFilter !== "ALL") && (
                 <button

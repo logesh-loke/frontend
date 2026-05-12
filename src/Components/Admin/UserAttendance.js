@@ -252,7 +252,7 @@ function AdminUserAttendance() {
                             {r.earlyLogoutMinutes} min
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-400"> Early Logout </span>
+                          <span className="text-sm text-gray-400"> -- </span>
                         )}
                       </td>
                     </tr>

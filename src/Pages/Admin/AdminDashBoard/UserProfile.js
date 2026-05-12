@@ -246,9 +246,7 @@ function AdminUsersTable() {
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none appearance-none cursor-pointer bg-white"
               >
                 <option value="ALL">All Roles</option>
-                <option value="USER">👤 Regular Users</option>
-                <option value="ADMIN">🛡️ Admins</option>
-                <option value="EMPLOYEE">💼 Employees</option>
+                <option value="ADMIN"> Admins</option>
               </select>
             </div>
 

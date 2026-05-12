@@ -255,14 +255,14 @@ const AttendanceCard = () => {
               : "PUNCH IN"}
           </button>
         </div>
+              <div className="mb-1 mt-1 flex justify-between text-sm text-gray-600">
+                <span>Shift: 09:30 AM – 06:30 PM</span>
+                
+              </div>
 
         {status !== "idle" && (
           <>
             <div className="mt-5">
-              <div className="mb-1 flex justify-between text-xs text-gray-600">
-                <span>Progress to 9hrs target</span>
-                <span>{getProgress().toFixed(0)}%</span>
-              </div>
               <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
                 <div
                   className="h-3 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 transition-all duration-500"

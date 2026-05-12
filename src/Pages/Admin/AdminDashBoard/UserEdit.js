@@ -1,14 +1,7 @@
 import React, { useState } from "react";
 import { apiFetch } from "../../../Services/Api";
 import Swal from "sweetalert2";
-import {
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaUserShield,
-  FaTimes,
-  FaSave,
+import {FaUser,FaEnvelope,FaPhone, FaMapMarkerAlt, FaUserShield, FaTimes, FaSave,
 } from "react-icons/fa";
 
 function UserEdit({ user, onClose, reloadUsers }) {
