@@ -42,7 +42,7 @@ const Header = () => {
   };
 
   return (
-    <div className="bg-gray-50 h-14 flex items-center justify-between px-6 shadow-sm">
+    <div className="bg-blue-200 h-14 flex items-center justify-between px-6 shadow-sm">
 
       {/* 🏷 DYNAMIC TITLE */}
       <p className="text-xl font-medium text-gray-700">

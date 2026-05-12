@@ -1,9 +1,17 @@
 import React, { useState } from "react";
 import { apiFetch } from "../../../Services/Api";
-import { toast } from "react-toastify";
+import Swal from "sweetalert2";
+import {
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaUserShield,
+  FaTimes,
+  FaSave,
+} from "react-icons/fa";
 
 function UserEdit({ user, onClose, reloadUsers }) {
-
   // ==========================
   // FORM STATE
   // ==========================
@@ -14,7 +22,7 @@ function UserEdit({ user, onClose, reloadUsers }) {
     email: user?.email || "",
     contactno: user?.contactno || "",
     address: user?.address || "",
-    role: user?.role || "user"
+    role: user?.role || "user",
   });
 
   const [loading, setLoading] = useState(false);
@@ -24,13 +32,83 @@ function UserEdit({ user, onClose, reloadUsers }) {
   // ==========================
 
   const handleChange = (e) => {
-
     const { name, value } = e.target;
+
+    if (name === "contactno") {
+      const numericValue = value.replace(/\D/g, "");
+
+      if (numericValue.length <= 10) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: numericValue,
+        }));
+      }
+
+      return;
+    }
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
+  };
+
+  // ==========================
+  // VALIDATE FORM
+  // ==========================
+
+  const validateForm = () => {
+    if (!formData.firstname.trim()) {
+      Swal.fire({
+        icon: "error",
+        title: "First name is required",
+        toast: true,
+        timer: 2000,
+        position: "top-end",
+        showConfirmButton: false,
+      });
+      return false;
+    }
+
+    if (!formData.lastname.trim()) {
+      Swal.fire({
+        icon: "error",
+        title: "Last name is required",
+        toast: true,
+        timer: 2000,
+        position: "top-end",
+        showConfirmButton: false,
+      });
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(formData.email)) {
+      Swal.fire({
+        icon: "error",
+        title: "Enter valid email",
+        toast: true,
+        timer: 2000,
+        position: "top-end",
+        showConfirmButton: false,
+      });
+      return false;
+    }
+
+    if (formData.contactno.length !== 10) {
+      Swal.fire({
+        icon: "error",
+        title: "Phone number must be 10 digits",
+        toast: true,
+        timer: 2000,
+        position: "top-end",
+        showConfirmButton: false,
+      });
+      return false;
+    }
+
+    return true;
   };
 
   // ==========================
@@ -38,274 +116,258 @@ function UserEdit({ user, onClose, reloadUsers }) {
   // ==========================
 
   const handleSubmit = async (e) => {
-
     e.preventDefault();
 
-    setLoading(true);
+    if (!validateForm()) return;
+
+    const result = await Swal.fire({
+      title: "Update User?",
+      text: "Do you want to save changes?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#ef4444",
+      confirmButtonText: "Update",
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
+      setLoading(true);
 
-      // GET TOKEN
       const token = localStorage.getItem("token");
 
-      // TOKEN CHECK
-      if (!token) {
+      const res = await apiFetch(`/api/v1/admin/users/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
 
-        toast.error("Authentication token not found");
-
-        return;
-      }
-
-      // API CALL
-      const res = await apiFetch(
-        `/api/v1/admin/users/${user.id}`,
-        {
-          method: "PUT",
-
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-
-          body: JSON.stringify(formData)
-        }
-      );
-
-      // RESPONSE DATA
       const data = await res.json();
 
-      // ERROR CHECK
       if (!res.ok) {
-
-        throw new Error(
-          data?.message || "Failed to update user"
-        );
+        throw new Error(data?.message || "Update failed");
       }
 
-      // SUCCESS
-      toast.success("User Updated Successfully");
+      Swal.fire({
+        icon: "success",
+        title: "User Updated Successfully",
+        timer: 2000,
+        showConfirmButton: false,
+      });
 
-      // RELOAD USERS
-      if (reloadUsers) {
-        reloadUsers();
-      }
+      reloadUsers && reloadUsers();
 
-      // CLOSE MODAL
-      if (onClose) {
-        onClose();
-      }
-
+      setTimeout(() => {
+        onClose && onClose();
+      }, 1200);
     } catch (err) {
+      console.error(err);
 
-      console.log(err);
-
-      toast.error(
-        err.message || "Something went wrong"
-      );
-
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text: err.message,
+      });
     } finally {
-
       setLoading(false);
     }
   };
 
   return (
-
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-
-      {/* MODAL */}
-
-      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl animate-fadeIn">
 
         {/* HEADER */}
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold">Edit User</h2>
+              <p className="mt-1 text-sm text-blue-100">
+                Update employee information
+              </p>
+            </div>
 
-        <div className="flex items-center justify-between border-b p-5">
-
-          <h2 className="text-2xl font-bold text-gray-800">
-            Edit User
-          </h2>
-
-          {/* CLOSE BUTTON */}
-
-          <button
-            onClick={onClose}
-            className="text-2xl font-bold text-gray-500 transition hover:text-red-500"
-          >
-            ✕
-          </button>
-
+            <button
+              onClick={onClose}
+              className="rounded-full bg-white/20 p-2 transition hover:bg-red-500"
+            >
+              <FaTimes size={18} />
+            </button>
+          </div>
         </div>
 
         {/* FORM */}
-
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 p-6"
+          className="max-h-[80vh] overflow-y-auto p-6"
         >
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 
-          {/* FIRST NAME */}
+            {/* FIRST NAME */}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FaUser className="text-blue-500" />
+                First Name
+              </label>
 
-          <div>
+              <input
+                type="text"
+                name="firstname"
+                value={formData.firstname}
+                onChange={handleChange}
+                placeholder="Enter first name"
+                className="w-full rounded-xl border border-gray-300 bg-gray-50 p-3 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100"
+              />
+            </div>
 
-            <label className="mb-2 block font-semibold text-gray-700">
-              First Name
-            </label>
+            {/* LAST NAME */}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FaUser className="text-blue-500" />
+                Last Name
+              </label>
 
-            <input
-              type="text"
-              name="firstname"
-              value={formData.firstname}
-              onChange={handleChange}
-              placeholder="Enter First Name"
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              required
-            />
+              <input
+                type="text"
+                name="lastname"
+                value={formData.lastname}
+                onChange={handleChange}
+                placeholder="Enter last name"
+                className="w-full rounded-xl border border-gray-300 bg-gray-50 p-3 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100"
+              />
+            </div>
 
-          </div>
+            {/* EMAIL */}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FaEnvelope className="text-pink-500" />
+                Email Address
+              </label>
 
-          {/* LAST NAME */}
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter email"
+                className="w-full rounded-xl border border-gray-300 bg-gray-50 p-3 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-pink-100"
+              />
+            </div>
 
-          <div>
+            {/* PHONE */}
+            <div>
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FaPhone className="text-green-500" />
+                Phone Number
+              </label>
 
-            <label className="mb-2 block font-semibold text-gray-700">
-              Last Name
-            </label>
+              <input
+                type="tel"
+                name="contactno"
+                value={formData.contactno}
+                onChange={handleChange}
+                placeholder="10-digit phone number"
+                maxLength="10"
+                className="w-full rounded-xl border border-gray-300 bg-gray-50 p-3 transition focus:border-green-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-green-100"
+              />
+            </div>
 
-            <input
-              type="text"
-              name="lastname"
-              value={formData.lastname}
-              onChange={handleChange}
-              placeholder="Enter Last Name"
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              required
-            />
+            {/* ROLE */}
+            <div className="md:col-span-2">
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FaUserShield className="text-purple-500" />
+                User Role
+              </label>
 
-          </div>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-gray-300 bg-gray-50 p-3 transition focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-purple-100"
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
 
-          {/* EMAIL */}
+            {/* ADDRESS */}
+            <div className="md:col-span-2">
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FaMapMarkerAlt className="text-red-500" />
+                Address
+              </label>
 
-          <div>
-
-            <label className="mb-2 block font-semibold text-gray-700">
-              Email
-            </label>
-
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter Email"
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              required
-            />
-
-          </div>
-
-          {/* PHONE */}
-
-          <div>
-
-            <label className="mb-2 block font-semibold text-gray-700">
-              Phone Number
-            </label>
-
-            <input
-              type="text"
-              name="contactno"
-              value={formData.contactno}
-              onChange={handleChange}
-              placeholder="Enter Phone Number"
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-
-          </div>
-
-          {/* ADDRESS */}
-
-          <div>
-
-            <label className="mb-2 block font-semibold text-gray-700">
-              Address
-            </label>
-
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Enter Address"
-              rows="3"
-              className="w-full resize-none rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-
-          </div>
-
-          {/* ROLE */}
-
-          <div>
-
-            <label className="mb-2 block font-semibold text-gray-700">
-              Role
-            </label>
-
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-
-              <option value="user">
-                User
-              </option>
-
-              <option value="admin">
-                Admin
-              </option>
-
-            </select>
-
+              <textarea
+                name="address"
+                rows="4"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Enter address"
+                className="w-full resize-none rounded-xl border border-gray-300 bg-gray-50 p-3 transition focus:border-red-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-red-100"
+              />
+            </div>
           </div>
 
           {/* BUTTONS */}
-
-          <div className="flex justify-end gap-4 pt-4">
-
-            {/* CANCEL BUTTON */}
+          <div className="mt-8 flex items-center justify-end gap-4 border-t pt-5">
 
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg bg-gray-400 px-6 py-2 text-white transition hover:bg-gray-500"
+              className="rounded-xl border border-gray-300 px-6 py-3 font-medium text-gray-700 transition hover:bg-gray-100"
             >
               Cancel
             </button>
 
-            {/* UPDATE BUTTON */}
-
             <button
               type="submit"
               disabled={loading}
-              className={`rounded-lg px-6 py-2 text-white transition ${
+              className={`flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-white shadow-lg transition ${
                 loading
                   ? "cursor-not-allowed bg-blue-300"
-                  : "bg-blue-500 hover:bg-blue-600"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105 hover:shadow-xl"
               }`}
             >
+              {loading ? (
+                <>
+                  <svg
+                    className="h-5 w-5 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
 
-              {loading
-                ? "Updating..."
-                : "Update"}
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
 
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <FaSave />
+                  Update User
+                </>
+              )}
             </button>
-
           </div>
-
         </form>
-
       </div>
-
     </div>
   );
 }

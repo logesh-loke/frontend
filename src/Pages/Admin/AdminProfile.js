@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../Services/Api";
+import Swal from "sweetalert2";
 import { FaEdit, FaCheck, FaEnvelope, FaPhone, FaMapMarkerAlt, FaUserShield } from "react-icons/fa";
 
 function AdminProfile() {
@@ -11,11 +12,17 @@ function AdminProfile() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [popup, setPopup] = useState({ show: false, title: "", message: "" });
   const fetchedRef = useRef(false);
 
-  const showPopup = (title, message) => setPopup({ show: true, title, message });
-  const closePopup = () => setPopup(prev => ({ ...prev, show: false }));
+  // Helper function to capitalize first letter of each word
+  const capitalizeName = (name) => {
+    if (!name) return "";
+    return name
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   useEffect(() => {
     if (fetchedRef.current) return;
@@ -47,6 +54,14 @@ function AdminProfile() {
         const role = (userInfo.role || "").toLowerCase().trim();
         if (role !== "admin") throw new Error("Access denied");
 
+        // Capitalize first and last name when loading
+        if (userInfo.firstname) {
+          userInfo.firstname = capitalizeName(userInfo.firstname);
+        }
+        if (userInfo.lastname) {
+          userInfo.lastname = capitalizeName(userInfo.lastname);
+        }
+
         setUser(userInfo);
         setForm(userInfo);
         setOriginalData(userInfo);
@@ -54,9 +69,18 @@ function AdminProfile() {
 
       } catch (err) {
         console.log(err);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
+        
+        Swal.fire({
+          title: "Session Expired",
+          text: "Please login again",
+          icon: "error",
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "OK"
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+        });
       } finally {
         setLoading(false);
       }
@@ -67,22 +91,72 @@ function AdminProfile() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    
+    // Capitalize firstname and lastname automatically
+    if (name === "firstname" || name === "lastname") {
+      setForm(prev => ({ 
+        ...prev, 
+        [name]: capitalizeName(value) 
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleCancel = () => {
-    setForm(originalData);
-    setEditing(false);
+    Swal.fire({
+      title: "Discard Changes?",
+      text: "You have unsaved changes. Are you sure you want to cancel?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, discard",
+      cancelButtonText: "No, continue editing"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setForm(originalData);
+        setEditing(false);
+        Swal.fire({
+          title: "Cancelled",
+          text: "Changes have been discarded",
+          icon: "info",
+          timer: 1500,
+          showConfirmButton: false,
+          position: "top-end",
+          toast: true,
+        });
+      }
+    });
   };
 
   const handleUpdate = async () => {
     try {
       setUpdating(true);
+      
+      // Show loading
+      Swal.fire({
+        title: "Updating Profile",
+        text: "Please wait...",
+        icon: "info",
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       const token = localStorage.getItem("token");
       const userId = user?._id || user?.id;
 
       if (!userId) {
-        return showPopup("⚠️ Error", "User ID not found");
+        Swal.fire({
+          title: "Error",
+          text: "User ID not found",
+          icon: "error",
+          confirmButtonColor: "#3085d6"
+        });
+        return;
       }
 
       const response = await apiFetch(`/api/v1/admin/profile/${userId}`, {
@@ -97,7 +171,7 @@ function AdminProfile() {
       const data = await response.json();
 
       if (!response.ok) {
-        return showPopup("⚠️ Error", data?.message || "Update failed");
+        throw new Error(data?.message || "Update failed");
       }
 
       const updatedUser = data?.data || data?.user || { ...user, ...form };
@@ -107,11 +181,27 @@ function AdminProfile() {
       setOriginalData(updatedUser);
       setEditing(false);
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      showPopup("✅ Success", "Profile updated successfully");
+      
+      // Success message
+      Swal.fire({
+        title: "Success!",
+        text: "Profile updated successfully",
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+        position: "center",
+      });
 
     } catch (err) {
       console.log(err);
-      showPopup("⚠️ Server Error", err.message || "Something went wrong");
+      
+      Swal.fire({
+        title: "Update Failed",
+        text: err.message || "Something went wrong",
+        icon: "error",
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "Try Again"
+      });
     } finally {
       setUpdating(false);
     }
@@ -132,7 +222,10 @@ function AdminProfile() {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-gray-100">
         <h2 className="text-2xl font-bold text-red-500">Session Expired</h2>
-        <button onClick={() => navigate("/login")} className="mt-5 rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700">
+        <button 
+          onClick={() => navigate("/login")} 
+          className="mt-5 rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
+        >
           Login Again
         </button>
       </div>
@@ -159,7 +252,10 @@ function AdminProfile() {
               </div>
             </div>
             {!editing && (
-              <button onClick={() => setEditing(true)} className="flex items-center gap-2 rounded-lg bg-white/20 px-5 py-2 text-white transition hover:bg-white/30">
+              <button 
+                onClick={() => setEditing(true)} 
+                className="flex items-center gap-2 rounded-lg bg-white/20 px-5 py-2 text-white transition hover:bg-white/30"
+              >
                 <FaEdit /> Edit Profile
               </button>
             )}
@@ -201,6 +297,7 @@ function AdminProfile() {
                         onChange={handleChange}
                         rows="4"
                         className="w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
                       />
                     ) : (
                       <input
@@ -209,6 +306,7 @@ function AdminProfile() {
                         value={form[field.name] || ""}
                         onChange={handleChange}
                         className="w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
                       />
                     )
                   ) : (
@@ -223,10 +321,17 @@ function AdminProfile() {
             {/* Action Buttons */}
             {editing && (
               <div className="mt-8 flex justify-end gap-4">
-                <button onClick={handleCancel} className="rounded-lg bg-gray-200 px-6 py-3 text-gray-700 transition hover:bg-gray-300">
+                <button 
+                  onClick={handleCancel} 
+                  className="rounded-lg bg-gray-200 px-6 py-3 text-gray-700 transition hover:bg-gray-300"
+                >
                   Cancel
                 </button>
-                <button onClick={handleUpdate} disabled={updating} className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+                <button 
+                  onClick={handleUpdate} 
+                  disabled={updating} 
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
                   <FaCheck /> {updating ? "Saving..." : "Save Changes"}
                 </button>
               </div>
@@ -234,19 +339,6 @@ function AdminProfile() {
           </div>
         </div>
       </div>
-
-      {/* Popup */}
-      {popup.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-[320px] rounded-2xl bg-white px-6 py-5 text-center shadow-2xl">
-            <h2 className="mb-2 text-xl font-bold">{popup.title}</h2>
-            <p className="text-gray-600">{popup.message}</p>
-            <button onClick={closePopup} className="mt-5 rounded-lg bg-gray-800 px-5 py-2 text-white transition hover:bg-gray-900">
-              OK
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

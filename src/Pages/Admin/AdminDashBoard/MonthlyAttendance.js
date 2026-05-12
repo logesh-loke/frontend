@@ -116,7 +116,7 @@ const AdminAllAttendance = () => {
   
   const totalPresent = filteredAttendance.filter(r => r.attendance_status?.toUpperCase() === "PRESENT").length;
   const totalAbsent = filteredAttendance.filter(r => r.attendance_status?.toUpperCase() === "ABSENT").length;
-  const totalLate = filteredAttendance.filter(r => r.attendance_status?.toUpperCase() === "LATE").length;
+ 
   
   const avgWorkingHours = filteredAttendance.length > 0 
     ? (filteredAttendance.reduce((sum, r) => sum + (parseFloat(r.working_hours) || 0), 0) / filteredAttendance.length).toFixed(1)
@@ -164,7 +164,7 @@ const AdminAllAttendance = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 gap-4 bg-gray-50 p-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 bg-gray-50 p-6 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-lg border-l-4 border-green-500 bg-white p-4 shadow-sm transition-all hover:shadow-md">
               <p className="text-sm text-gray-600">Total Present</p>
               <p className="text-2xl font-bold text-green-600">{totalPresent}</p>
@@ -173,10 +173,7 @@ const AdminAllAttendance = () => {
               <p className="text-sm text-gray-600">Total Absent</p>
               <p className="text-2xl font-bold text-red-600">{totalAbsent}</p>
             </div>
-            <div className="rounded-lg border-l-4 border-yellow-500 bg-white p-4 shadow-sm transition-all hover:shadow-md">
-              <p className="text-sm text-gray-600">Total Late</p>
-              <p className="text-2xl font-bold text-yellow-600">{totalLate}</p>
-            </div>
+            
             <div className="rounded-lg border-l-4 border-blue-500 bg-white p-4 shadow-sm transition-all hover:shadow-md">
               <p className="text-sm text-gray-600">Avg Working Hours</p>
               <p className="text-2xl font-bold text-blue-600">{avgWorkingHours} hrs</p>

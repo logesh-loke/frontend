@@ -4,7 +4,7 @@ import Sidebar from "./Sidebars";
 
 const Layout = ({ children }) => {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen bg-fixed overflow-hidden bg-gray-900">
 
       {/* ⬅ Sidebar (fixed) */}
       <Sidebar />

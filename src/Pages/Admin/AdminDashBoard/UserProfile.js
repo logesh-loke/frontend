@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../../Services/Api";
-import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 import { 
   FaEdit, FaTrash, FaSearch, FaUser, FaUsers, FaShieldAlt, 
   FaUserTag, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard,
@@ -39,7 +39,15 @@ function AdminUsersTable() {
       setUsers(data?.data || []);
     } catch (err) {
       console.error("USERS ERROR:", err);
-      toast.error(err.message || "Failed to load users");
+      Swal.fire({
+        title: "Error!",
+        text: err.message || "Failed to load users",
+        icon: "error",
+        timer: 2000,
+        showConfirmButton: false,
+        position: "top-end",
+        toast: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -65,12 +73,48 @@ function AdminUsersTable() {
     setRefreshing(true);
     await Promise.all([loadUsers(), loadAttendanceData()]);
     setRefreshing(false);
-    toast.success("Data refreshed successfully");
+    
+    Swal.fire({
+      title: "Refreshed!",
+      text: "Data refreshed successfully",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+      position: "top-end",
+      toast: true,
+    });
   };
 
-  const deleteUser = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
-    
+  const deleteUser = async (id, userName) => {
+    // SweetAlert2 confirmation dialog
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      html: `You are about to delete user <strong>${userName}</strong>.<br />This action cannot be undone!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    // Show loading state
+    Swal.fire({
+      title: 'Deleting...',
+      text: 'Please wait while we delete the user',
+      icon: 'info',
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     try {
       const token = localStorage.getItem("token");
       const res = await apiFetch(`/api/v1/admin/users/${id}`, {
@@ -82,12 +126,29 @@ function AdminUsersTable() {
       });
       
       const result = await res.json();
+      
       if (!res.ok) throw new Error(result?.message || "Delete failed");
-      toast.success("User deleted successfully");
+      
+      // Success message
+      Swal.fire({
+        title: 'Deleted!',
+        text: `User ${userName} has been deleted successfully.`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      
       loadUsers();
     } catch (err) {
-      console.log(err);
-      toast.error(err.message || "Something went wrong");
+      console.error(err);
+      
+      Swal.fire({
+        title: 'Error!',
+        text: err.message || "Something went wrong",
+        icon: 'error',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK'
+      });
     }
   };
 
@@ -141,33 +202,6 @@ function AdminUsersTable() {
   const formatDate = () => {
     return new Date().toLocaleString();
   };
-
-  const exportToCSV = () => {
-    const headers = ["ID", "Name", "Email", "Phone", "Address", "Role"];
-    const csvData = filteredUsers.map(u => [
-      u.id,
-      `${u.firstname} ${u.lastname}`,
-      u.email,
-      u.contactno || "N/A",
-      u.address || "N/A",
-      u.role || "User"
-    ]);
-    
-    const csvContent = [headers, ...csvData].map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `users_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Export successful!");
-  };
-
-  const printReport = () => {
-    window.print();
-  };
-
   // LOADING
   if (loading) {
     return (
@@ -188,6 +222,8 @@ function AdminUsersTable() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto">
+       
+
         {/* Filters and Search */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -209,8 +245,10 @@ function AdminUsersTable() {
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none appearance-none cursor-pointer bg-white"
               >
-                <option value="ALL"> All Roles</option>
+                <option value="ALL">All Roles</option>
                 <option value="USER">👤 Regular Users</option>
+                <option value="ADMIN">🛡️ Admins</option>
+                <option value="EMPLOYEE">💼 Employees</option>
               </select>
             </div>
 
@@ -247,13 +285,7 @@ function AdminUsersTable() {
                 <h2 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                   User Profiles
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">View and manage all registered users</p>
-              </div>
-              <div className="flex gap-2">
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-xl">
-                  <FaUserTag className="text-blue-600 text-sm" />
-                  <span className="text-sm font-medium text-blue-700">{stats.employees} Users</span>
-                </div>
+                <p className="text-sm text-gray-500 mt-1">Manage all registered users</p>
               </div>
             </div>
           </div>
@@ -325,7 +357,7 @@ function AdminUsersTable() {
                             Edit
                           </button>
                           <button
-                            onClick={() => deleteUser(user.id)}
+                            onClick={() => deleteUser(user.id, `${user.firstname} ${user.lastname}`)}
                             className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition shadow-md text-xs font-medium flex items-center gap-2"
                           >
                             <FaTrash size={12} />
