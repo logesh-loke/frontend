@@ -17,8 +17,6 @@ const AdminAllAttendance = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedUserAttendance, setSelectedUserAttendance] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
 
@@ -51,60 +49,15 @@ const AdminAllAttendance = () => {
     }
   };
 
-  // Fix: API to fetch monthly attendance for 30 days for a specific user
-  const fetchUserMonthlyAttendance = async (userId) => {
-    try {
-      setLoadingHistory(true);
-      const token = localStorage.getItem("token");
-      
-      const res = await apiFetch(`/api/v1/admin/attendance/monthly/${userId}`, {
-        method: "GET",
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${token}` 
-        }
-      });
-      
-      const result = await res.json();
-      
-      if (!res.ok) throw new Error(result?.message || "Failed to load user attendance history");
-      
-      console.log("Monthly Attendance Response:", result?.data);
-      return result?.data || [];
-      
-    } catch (err) {
-      console.log(err);
-      toast.error(err.message || "Failed to load attendance history");
-      return [];
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  const openHistoryModal = async (record) => {
-    try {
-      // Set selected user data
-      setSelectedUser(record);
-      setModalOpen(true);
-      
-      // Fetch monthly attendance for the selected user
-      const userId = record.userId || record.id;
-      if (userId) {
-        const monthlyData = await fetchUserMonthlyAttendance(userId);
-        setSelectedUserAttendance(monthlyData);
-      } else {
-        toast.error("User ID not found");
-      }
-    } catch (err) {
-      console.error("Error opening history modal:", err);
-      toast.error("Failed to load attendance history");
-    }
+  const openHistoryModal = (record) => {
+    // Set selected user data - the modal will fetch its own data
+    setSelectedUser(record);
+    setModalOpen(true);
   };
 
   const closeHistoryModal = () => {
     setModalOpen(false);
     setSelectedUser(null);
-    setSelectedUserAttendance([]);
   };
 
   const refreshData = async () => {
@@ -420,7 +373,7 @@ const AdminAllAttendance = () => {
                             </button>
                           </div>
                          </td>
-                        </tr>
+                       </tr>
                     ))
                   )}
                 </tbody>
@@ -434,13 +387,11 @@ const AdminAllAttendance = () => {
           </div>
         </div>
 
-        {/* Modal Component - Updated to receive attendance history data */}
+        {/* Modal Component - Only pass user and token, modal handles its own data fetching */}
         <AttendanceHistoryModal 
           isOpen={modalOpen}
           onClose={closeHistoryModal}
           user={selectedUser}
-          attendanceHistory={selectedUserAttendance}
-          loadingHistory={loadingHistory}
           token={token}
         />
       </div>

@@ -47,6 +47,7 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
       
       historyData.forEach(item => {
         if (item.date) {
+          // Create consistent date key
           const dateKey = new Date(item.date).toDateString();
           attendanceMap.set(dateKey, item);
         }
@@ -57,8 +58,8 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
         const existingRecord = attendanceMap.get(dateKey);
         if (existingRecord) return existingRecord;
         return {
-          date: date.toISOString(),
-          status: "ABSENT",
+          date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          status: "",
           punch_in: null,
           punch_out: null,
           working_hours: 0,
@@ -70,6 +71,7 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
       const sortedHistory = completeHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
       setHistory(sortedHistory);
       
+      // Count only PRESENT and ABSENT status (excluding OFF, empty, etc.)
       const presentCount = sortedHistory.filter(h => h.status?.toUpperCase() === "PRESENT").length;
       const absentCount = sortedHistory.filter(h => h.status?.toUpperCase() === "ABSENT").length;
       const attendanceRate = sortedHistory.length > 0 ? ((presentCount / sortedHistory.length) * 100).toFixed(1) : 0;
@@ -97,10 +99,12 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
   };
 
   const getStatusColor = (status) => {
+    if (!status) return "bg-gray-300";
     switch (status?.toUpperCase()) {
       case "PRESENT": return "bg-green-500";
       case "ABSENT": return "bg-red-500";
       case "LATE": return "bg-yellow-500";
+      case "OFF": return "bg-purple-500";
       default: return "bg-gray-500";
     }
   };
@@ -114,8 +118,31 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
 
   const formatTime = (time) => {
     if (!time) return "--";
+    // Time is already in format like "02:56:53 pm" or "10:36:15 am"
     try {
-      return new Date(time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
+      // If it's already formatted, just extract hour:minute am/pm
+      if (typeof time === 'string' && (time.includes('am') || time.includes('pm'))) {
+        const match = time.match(/(\d{1,2}):(\d{2}):\d{2}\s+(am|pm)/i);
+        if (match) {
+          let hour = parseInt(match[1]);
+          const minute = match[2];
+          const period = match[3].toLowerCase();
+          if (period === 'pm' && hour !== 12) hour += 12;
+          if (period === 'am' && hour === 12) hour = 0;
+          return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], { 
+            hour: "2-digit", 
+            minute: "2-digit",
+            hour12: true 
+          });
+        }
+        return time.split(' ')[0]; // Return time without seconds
+      }
+      // Try parsing as full date
+      return new Date(time).toLocaleTimeString([], { 
+        hour: "2-digit", 
+        minute: "2-digit",
+        hour12: true 
+      });
     } catch { return "--"; }
   };
 
@@ -212,9 +239,15 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
                               {dateObj.toLocaleDateString(undefined, { weekday: 'short' })}
                             </td>
                             <td className="p-3">
-                              <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold text-white ${getStatusColor(record.status)}`}>
-                                {record.status || "--"}
-                              </span>
+                              {record.status ? (
+                                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold text-white ${getStatusColor(record.status)}`}>
+                                  {record.status}
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded-full px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-200">
+                                  --
+                                </span>
+                              )}
                             </td>
                             <td className="p-3">
                               <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -229,7 +262,7 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
                               </div>
                             </td>
                             <td className="p-3 text-sm text-gray-600">
-                              {record.working_hours ? `${parseFloat(record.working_hours).toFixed(1)} hrs` : "--"}
+                              {record.working_hours && record.working_hours !== "0.00" ? `${parseFloat(record.working_hours).toFixed(1)} hrs` : "--"}
                             </td>
                           </tr>
                         );
