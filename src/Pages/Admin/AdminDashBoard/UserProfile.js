@@ -6,23 +6,25 @@ import {
   FaEdit, FaTrash, FaSearch, FaUser, FaUsers, FaShieldAlt, 
   FaUserTag, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard,
   FaEye, FaChartLine, FaCalendarAlt, FaClock, FaUserCircle,
-  FaCheckCircle, FaTimesCircle, FaDownload, FaPrint, FaFilter
+  FaCheckCircle, FaTimesCircle, FaDownload, FaPrint, FaFilter,
+  FaExclamationTriangle, FaSync, FaHome
 } from "react-icons/fa";
 import UserEdit from "./UserEdit";
 
 function AdminUsersTable() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
+  const [attendanceData, setAttendanceData] = useState([]);
   const navigate = useNavigate();
 
   // LOAD USERS
   useEffect(() => {
     loadUsers();
+    loadAttendanceData();
   }, []);
 
   const loadUsers = async () => {
@@ -41,6 +43,29 @@ function AdminUsersTable() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAttendanceData = async () => {
+    try {
+      const res = await apiFetch("/api/v1/admin/attendance/today");
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to load attendance");
+      }
+      
+      setAttendanceData(data?.data || []);
+    } catch (err) {
+      console.error("ATTENDANCE ERROR:", err);
+      setAttendanceData([]);
+    }
+  };
+
+  const refreshData = async () => {
+    setRefreshing(true);
+    await Promise.all([loadUsers(), loadAttendanceData()]);
+    setRefreshing(false);
+    toast.success("Data refreshed successfully");
   };
 
   const deleteUser = async (id) => {
@@ -66,6 +91,17 @@ function AdminUsersTable() {
     }
   };
 
+  // Calculate attendance stats
+  const calculateAttendanceStats = () => {
+    const present = attendanceData.filter(a => a.status?.toUpperCase() === "PRESENT").length;
+    const absent = attendanceData.filter(a => a.status?.toUpperCase() === "ABSENT").length;
+    const late = attendanceData.filter(a => a.lateMinutes > 0 || a.status?.toUpperCase() === "LATE").length;
+    
+    return { present, absent, late };
+  };
+
+  const attendanceStats = calculateAttendanceStats();
+
   // Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = searchTerm === "" || 
@@ -83,7 +119,10 @@ function AdminUsersTable() {
     total: users.length,
     admins: users.filter(u => u.role?.toLowerCase() === 'admin').length,
     employees: users.filter(u => u.role?.toLowerCase() === 'employee' || u.role?.toLowerCase() === 'user').length,
-    active: users.length
+    active: users.length,
+    present: attendanceStats.present,
+    absent: attendanceStats.absent,
+    late: attendanceStats.late
   };
 
   const getRoleBadge = (role) => {
@@ -149,111 +188,6 @@ function AdminUsersTable() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto">
-        
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-start flex-wrap gap-4">
-            <div className="relative">
-              <div className="absolute -top-4 -left-4 w-24 h-24 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-20 blur-2xl"></div>
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-xl">
-                  <FaUsers className="text-white text-3xl" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                    User Management
-                  </h1>
-                  <p className="text-gray-500 mt-1">Manage and monitor all user accounts</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button 
-                onClick={exportToCSV}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <FaDownload size={14} />
-                Export CSV
-              </button>
-              <button 
-                onClick={printReport}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <FaPrint size={14} />
-                Print
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full opacity-10 blur-2xl group-hover:opacity-20 transition-all"></div>
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Total Users</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mt-2">{stats.total}</p>
-                </div>
-                <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl p-3 shadow-lg group-hover:scale-110 transition-transform">
-                  <FaUsers className="text-white text-2xl" />
-                </div>
-              </div>
-            </div>
-            <div className="h-1 bg-gradient-to-r from-blue-400 to-blue-600 transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></div>
-          </div>
-
-          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500 rounded-full opacity-10 blur-2xl group-hover:opacity-20 transition-all"></div>
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Administrators</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent mt-2">{stats.admins}</p>
-                </div>
-                <div className="bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl p-3 shadow-lg group-hover:scale-110 transition-transform">
-                  <FaShieldAlt className="text-white text-2xl" />
-                </div>
-              </div>
-            </div>
-            <div className="h-1 bg-gradient-to-r from-purple-400 to-purple-600 transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></div>
-          </div>
-
-          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500 rounded-full opacity-10 blur-2xl group-hover:opacity-20 transition-all"></div>
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Employees</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent mt-2">{stats.employees}</p>
-                </div>
-                <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-2xl p-3 shadow-lg group-hover:scale-110 transition-transform">
-                  <FaUserTag className="text-white text-2xl" />
-                </div>
-              </div>
-            </div>
-            <div className="h-1 bg-gradient-to-r from-green-400 to-green-600 transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></div>
-          </div>
-
-          <div className="group relative overflow-hidden bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500 rounded-full opacity-10 blur-2xl group-hover:opacity-20 transition-all"></div>
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm font-medium">Active Today</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-800 bg-clip-text text-transparent mt-2">{stats.active}</p>
-                </div>
-                <div className="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl p-3 shadow-lg group-hover:scale-110 transition-transform">
-                  <FaUserCircle className="text-white text-2xl" />
-                </div>
-              </div>
-            </div>
-            <div className="h-1 bg-gradient-to-r from-yellow-400 to-yellow-600 transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></div>
-          </div>
-        </div>
-
         {/* Filters and Search */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -275,9 +209,7 @@ function AdminUsersTable() {
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none appearance-none cursor-pointer bg-white"
               >
-                <option value="ALL">📊 All Roles</option>
-                <option value="ADMIN">🛡️ Administrators</option>
-                <option value="EMPLOYEE">👥 Employees</option>
+                <option value="ALL"> All Roles</option>
                 <option value="USER">👤 Regular Users</option>
               </select>
             </div>
@@ -318,10 +250,6 @@ function AdminUsersTable() {
                 <p className="text-sm text-gray-500 mt-1">View and manage all registered users</p>
               </div>
               <div className="flex gap-2">
-                <div className="flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-xl">
-                  <FaShieldAlt className="text-purple-600 text-sm" />
-                  <span className="text-sm font-medium text-purple-700">{stats.admins} Admins</span>
-                </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-xl">
                   <FaUserTag className="text-blue-600 text-sm" />
                   <span className="text-sm font-medium text-blue-700">{stats.employees} Employees</span>
@@ -347,7 +275,7 @@ function AdminUsersTable() {
                     <tr key={user.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all duration-300 group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="relative flex-shrink-0 h-12 w-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 to-purple-600">
+                          <div className="relative flex-shrink-0 h-12 w-12 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 to-purple-600">
                             <span className="text-white font-bold text-sm">
                               {user.firstname?.[0]}{user.lastname?.[0]}
                             </span>

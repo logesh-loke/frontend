@@ -14,7 +14,6 @@ const Sidebar = () => {
 
   //  ADMIN MENU
   const adminMenu = [
-    { name: "Dashboard", path: "/admin-dashboard" },
     { name: "User Profile", path: "/user-profile"},
     { name: "Today Attendance", path: "/admin-user" },
     { name: "Monthly Attendance", path: "/admin-history" },

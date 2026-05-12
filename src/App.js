@@ -149,16 +149,7 @@ export default function App() {
 
         {/*ADMIN ROUTE */}
 
-        <Route
-          path="/admin-dashboard"
-          element={
-            <ProtectedRoute
-              allowedRoles={["admin"]} >
-              <Layout>
-                <AdminDashboard />
-              </Layout>
-            </ProtectedRoute>
-          }/>
+        
 
         <Route
           path="/admin-profile"
@@ -199,7 +190,7 @@ export default function App() {
             <ProtectedRoute
               allowedRoles={["admin"]}>
               <Layout>
-                <UserProfile />
+                <UserProfile/>
               </Layout>
             </ProtectedRoute>
           }/>
