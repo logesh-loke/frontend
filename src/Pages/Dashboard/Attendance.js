@@ -287,10 +287,6 @@ const AttendanceCard = () => {
         )}
       </div>
 
-      <div className="mb-2 px-1 text-sm text-gray-600">
-        📊 Showing last 30 days: Present ({presentCount}) | Absent ({absentCount})
-      </div>
-
       <AttendanceChart data={chartData} />
     </div>
   );

@@ -238,7 +238,7 @@ function AdminUsersTable() {
               />
             </div>
             
-            <div className="relative">
+            {/* <div className="relative">
               <FaFilter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <select
                 value={roleFilter}
@@ -248,7 +248,7 @@ function AdminUsersTable() {
                 <option value="ALL">All Roles</option>
                 <option value="ADMIN"> Admins</option>
               </select>
-            </div>
+            </div> */}
 
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm text-gray-600 bg-gradient-to-r from-gray-100 to-gray-50 px-4 py-2 rounded-xl">
