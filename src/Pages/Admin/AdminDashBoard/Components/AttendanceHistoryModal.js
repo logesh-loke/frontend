@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(false);  
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     presentCount: 0,
     absentCount: 0,
@@ -20,7 +20,18 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
     }
   }, [isOpen, user]);
 
+  // ✅ FIX: Parse date string as LOCAL date to avoid UTC timezone shift
+  // "2025-05-12" parsed as new Date("2025-05-12") = UTC midnight = May 11 in IST (+5:30)
+  // This function forces local midnight so no date shift occurs
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr) return null;
+    const clean = dateStr.split("T")[0]; // strip time part if present
+    const [y, m, d] = clean.split("-").map(Number);
+    return new Date(y, m - 1, d); // local midnight — no UTC offset applied
+  };
+
   const fetchUserHistory = async () => {
+   
     if (!user?.id) {
       toast.error("User ID not found");
       return;
@@ -28,56 +39,58 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
 
     try {
       setLoading(true);
-      // Fixed API endpoint with userId parameter
-      const res = await apiFetch(`/api/v1/admin/attendance/monthly/${user.id}`, {
+      const res = await apiFetch(`/api/v1/admin/attendance/monthly/${user.user_id}`, {
         method: "GET",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`
         }
       });
-      
+
       const result = await res.json();
-      
+
       if (!res.ok) throw new Error(result?.message || "Failed to load history");
-      
+
       const historyData = result?.data || [];
       const last30Days = getLast30DaysDates();
       const attendanceMap = new Map();
-      
+
       historyData.forEach(item => {
         if (item.date) {
-          // Create consistent date key
-          const dateKey = new Date(item.date).toDateString();
+          // ✅ FIX: Use parseLocalDate instead of new Date(item.date)
+          const dateKey = parseLocalDate(item.date).toDateString();
           attendanceMap.set(dateKey, item);
         }
       });
-      
+
       const completeHistory = last30Days.map(date => {
-        const dateKey = date.toDateString();
+        const dateKey = date.toDateString(); // already local date from getLast30DaysDates
         const existingRecord = attendanceMap.get(dateKey);
         if (existingRecord) return existingRecord;
         return {
-          date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`, // ✅ FIX: Build YYYY-MM-DD from local parts, not toISOString() which uses UTC
           status: "",
           punch_in: null,
           punch_out: null,
           working_hours: 0,
           late_login_mins: 0,
-          early_logout_mins: 0,
+          early_logout_mins: 0
         };
       });
-      
-      const sortedHistory = completeHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const sortedHistory = completeHistory.sort(
+        (a, b) => parseLocalDate(b.date) - parseLocalDate(a.date) // ✅ FIX: sort also uses parseLocalDate
+      );
       setHistory(sortedHistory);
-      
-      // Count only PRESENT and ABSENT status (excluding OFF, empty, etc.)
+
       const presentCount = sortedHistory.filter(h => h.status?.toUpperCase() === "PRESENT").length;
       const absentCount = sortedHistory.filter(h => h.status?.toUpperCase() === "ABSENT").length;
-      const attendanceRate = sortedHistory.length > 0 ? ((presentCount / sortedHistory.length) * 100).toFixed(1) : 0;
-      
+      const attendanceRate =
+        sortedHistory.length > 0
+          ? ((presentCount / sortedHistory.length) * 100).toFixed(1)
+          : 0;
+
       setStats({ presentCount, absentCount, attendanceRate, totalDays: sortedHistory.length });
-      
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Failed to load history");
@@ -92,7 +105,7 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      date.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0); // already local midnight — correct
       dates.push(date);
     }
     return dates;
@@ -109,41 +122,44 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return "--";
+  // ✅ FIX: formatDate uses parseLocalDate to avoid timezone shift in display too
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "--";
     try {
-      return new Date(date).toLocaleDateString();
-    } catch { return "--"; }
+      const d = parseLocalDate(dateStr);
+      return d ? d.toLocaleDateString() : "--";
+    } catch {
+      return "--";
+    }
   };
 
   const formatTime = (time) => {
     if (!time) return "--";
-    // Time is already in format like "02:56:53 pm" or "10:36:15 am"
     try {
-      // If it's already formatted, just extract hour:minute am/pm
-      if (typeof time === 'string' && (time.includes('am') || time.includes('pm'))) {
+      if (typeof time === "string" && (time.includes("am") || time.includes("pm"))) {
         const match = time.match(/(\d{1,2}):(\d{2}):\d{2}\s+(am|pm)/i);
         if (match) {
           let hour = parseInt(match[1]);
           const minute = match[2];
           const period = match[3].toLowerCase();
-          if (period === 'pm' && hour !== 12) hour += 12;
-          if (period === 'am' && hour === 12) hour = 0;
-          return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], { 
-            hour: "2-digit", 
+          if (period === "pm" && hour !== 12) hour += 12;
+          if (period === "am" && hour === 12) hour = 0;
+          return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], {
+            hour: "2-digit",
             minute: "2-digit",
-            hour12: true 
+            hour12: true
           });
         }
-        return time.split(' ')[0]; // Return time without seconds
+        return time.split(" ")[0];
       }
-      // Try parsing as full date
-      return new Date(time).toLocaleTimeString([], { 
-        hour: "2-digit", 
+      return new Date(time).toLocaleTimeString([], {
+        hour: "2-digit",
         minute: "2-digit",
-        hour12: true 
+        hour12: true
       });
-    } catch { return "--"; }
+    } catch {
+      return "--";
+    }
   };
 
   if (!isOpen) return null;
@@ -156,10 +172,15 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">30 Days Attendance History</h2>
-              <p className="mt-1 text-blue-100">{user?.firstname} {user?.lastname}</p>
+              <p className="mt-1 text-blue-100">
+                {user?.firstname} {user?.lastname}
+              </p>
               <p className="text-sm text-blue-100">{user?.email}</p>
             </div>
-            <button onClick={onClose} className="rounded-full bg-white/20 p-2 text-white transition hover:bg-white/30">
+            <button
+              onClick={onClose}
+              className="rounded-full bg-white/20 p-2 text-white transition hover:bg-white/30"
+            >
               <FaTimes size={20} />
             </button>
           </div>
@@ -201,11 +222,16 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
               {/* Progress Bar */}
               <div className="mb-6 rounded-lg bg-gray-50 p-4">
                 <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Attendance Rate (Last 30 Days)</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Attendance Rate (Last 30 Days)
+                  </span>
                   <span className="text-sm font-medium text-gray-700">{stats.attendanceRate}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${stats.attendanceRate}%` }}></div>
+                  <div
+                    className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 rounded-full transition-all duration-500"
+                    style={{ width: `${stats.attendanceRate}%` }}
+                  ></div>
                 </div>
               </div>
 
@@ -226,21 +252,32 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
                   <tbody className="divide-y divide-gray-200">
                     {history.length > 0 ? (
                       history.map((record, idx) => {
-                        const dateObj = new Date(record.date);
-                        const isToday = dateObj.toDateString() === new Date().toDateString();
+                        // ✅ FIX: Use parseLocalDate for row date too
+                        const dateObj = parseLocalDate(record.date);
+                        const isToday =
+                          dateObj && dateObj.toDateString() === new Date().toDateString();
                         return (
-                          <tr key={idx} className={`hover:bg-gray-50 ${isToday ? 'bg-blue-50' : ''}`}>
+                          <tr
+                            key={idx}
+                            className={`hover:bg-gray-50 ${isToday ? "bg-blue-50" : ""}`}
+                          >
                             <td className="p-3 text-sm text-gray-500">{idx + 1}</td>
                             <td className="p-3">
                               <div className="text-sm text-gray-900">{formatDate(record.date)}</div>
-                              {isToday && <span className="text-xs text-blue-600 font-medium">Today</span>}
+                              {isToday && (
+                                <span className="text-xs text-blue-600 font-medium">Today</span>
+                              )}
                             </td>
                             <td className="p-3 text-sm text-gray-600">
-                              {dateObj.toLocaleDateString(undefined, { weekday: 'short' })}
+                              {dateObj
+                                ? dateObj.toLocaleDateString(undefined, { weekday: "short" })
+                                : "--"}
                             </td>
                             <td className="p-3">
                               {record.status ? (
-                                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold text-white ${getStatusColor(record.status)}`}>
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold text-white ${getStatusColor(record.status)}`}
+                                >
                                   {record.status}
                                 </span>
                               ) : (
@@ -251,18 +288,24 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
                             </td>
                             <td className="p-3">
                               <div className="flex items-center gap-1 text-sm text-gray-600">
-                                {record.punch_in && <FaSignInAlt className="text-green-500 text-xs" />}
+                                {record.punch_in && (
+                                  <FaSignInAlt className="text-green-500 text-xs" />
+                                )}
                                 {record.punch_in ? formatTime(record.punch_in) : "--"}
                               </div>
                             </td>
                             <td className="p-3">
                               <div className="flex items-center gap-1 text-sm text-gray-600">
-                                {record.punch_out && <FaSignOutAlt className="text-red-500 text-xs" />}
+                                {record.punch_out && (
+                                  <FaSignOutAlt className="text-red-500 text-xs" />
+                                )}
                                 {record.punch_out ? formatTime(record.punch_out) : "--"}
                               </div>
                             </td>
                             <td className="p-3 text-sm text-gray-600">
-                              {record.working_hours && record.working_hours !== "0.00" ? `${parseFloat(record.working_hours).toFixed(1)} hrs` : "--"}
+                              {record.working_hours && record.working_hours !== "0.00"
+                                ? `${parseFloat(record.working_hours).toFixed(1)} hrs`
+                                : "--"}
                             </td>
                           </tr>
                         );
@@ -284,7 +327,10 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
 
         {/* Footer */}
         <div className="sticky bottom-0 border-t bg-gray-50 p-4">
-          <button onClick={onClose} className="rounded-lg bg-blue-600 px-6 py-2 text-white transition hover:bg-blue-700">
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-blue-600 px-6 py-2 text-white transition hover:bg-blue-700"
+          >
             Close
           </button>
         </div>
