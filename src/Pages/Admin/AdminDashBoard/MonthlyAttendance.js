@@ -13,8 +13,8 @@ const AdminAllAttendance = () => {
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [dateFilter, setDateFilter] = useState(""); // New date filter
+  const [startDate, setStartDate] = useState(""); // Start date filter (YYYY-MM-DD)
+  const [endDate, setEndDate] = useState(""); // End date filter (YYYY-MM-DD)
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -34,8 +34,8 @@ const AdminAllAttendance = () => {
       // Build query parameters based on documentation
       const queryParams = new URLSearchParams();
       
-      if (month) queryParams.append("month", month);
-      if (dateFilter) queryParams.append("date", dateFilter);
+      if (startDate) queryParams.append("startDate", startDate);
+      if (endDate) queryParams.append("endDate", endDate);
       if (statusFilter !== "ALL") queryParams.append("status", statusFilter);
       if (searchTerm) queryParams.append("search", searchTerm);
       if (pagination.page) queryParams.append("page", pagination.page);
@@ -80,7 +80,7 @@ const AdminAllAttendance = () => {
     try {
       const token = localStorage.getItem("token");
       const userId = user.userId || user.id;
-      const currentMonth = month;
+      const currentMonth = new Date().toISOString().slice(0, 7);
       
       // Fetch monthly attendance for the specific user
       const url = `/api/v1/admin/attendance/monthly/${userId}?month=${currentMonth}`;
@@ -120,9 +120,17 @@ const AdminAllAttendance = () => {
     toast.success("Data refreshed successfully");
   };
 
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+    setStartDate("");
+    setEndDate("");
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   useEffect(() => {
     loadAttendance();
-  }, [month, dateFilter, statusFilter, searchTerm, pagination.page, pagination.limit]);
+  }, [startDate, endDate, statusFilter, searchTerm, pagination.page, pagination.limit]);
 
   const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
@@ -215,9 +223,9 @@ const AdminAllAttendance = () => {
             </div>
           </div>
 
-          {/* Filters - Updated based on API documentation */}
+          {/* Filters - Date to Date Range Picker */}
           <div className="border-b p-6">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
@@ -235,14 +243,14 @@ const AdminAllAttendance = () => {
               <div className="relative">
                 <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
-                  type="month" 
-                  value={month} 
+                  type="date" 
+                  value={startDate} 
                   onChange={(e) => {
-                    setMonth(e.target.value);
-                    setDateFilter(""); // Clear date filter when month is selected
+                    setStartDate(e.target.value);
                     setPagination(prev => ({ ...prev, page: 1 }));
                   }} 
                   className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                  placeholder="Start Date"
                 />
               </div>
 
@@ -250,14 +258,14 @@ const AdminAllAttendance = () => {
                 <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
                   type="date" 
-                  value={dateFilter} 
+                  value={endDate} 
                   onChange={(e) => {
-                    setDateFilter(e.target.value);
-                    setMonth(""); // Clear month filter when date is selected
+                    setEndDate(e.target.value);
                     setPagination(prev => ({ ...prev, page: 1 }));
                   }} 
                   className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                  placeholder="Specific date"
+                  placeholder="End Date"
+                  min={startDate}
                 />
               </div>
               
@@ -272,25 +280,23 @@ const AdminAllAttendance = () => {
                 <option value="ALL">All Status</option>
                 <option value="PRESENT">Present</option>
                 <option value="ABSENT">Absent</option>
+                
               </select>
-
-              {(searchTerm || statusFilter !== "ALL" || dateFilter) && (
+            </div>
+            
+            {/* Clear Filters Button */}
+            <div className="mt-4 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Showing {attendance.length} records | Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit) || 1}
+              </div>
+              {(searchTerm || statusFilter !== "ALL" || startDate || endDate) && (
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("ALL");
-                    setDateFilter("");
-                    setMonth(new Date().toISOString().slice(0, 7));
-                    setPagination(prev => ({ ...prev, page: 1 }));
-                  }}
+                  onClick={clearAllFilters}
                   className="rounded-lg bg-red-100 px-4 py-2 text-red-600 transition hover:bg-red-200"
                 >
                   Clear Filters
                 </button>
               )}
-            </div>
-            <div className="mt-4 text-sm text-gray-600">
-              Showing {attendance.length} records | Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit) || 1}
             </div>
           </div>
 
@@ -425,7 +431,7 @@ const AdminAllAttendance = () => {
           onClose={closeHistoryModal}
           user={selectedUser}
           token={localStorage.getItem("token")}
-          currentMonth={month}
+          currentMonth={new Date().toISOString().slice(0, 7)}
         />
       </div>
     </div>
