@@ -144,8 +144,8 @@ const AdminAllAttendance = () => {
 
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
-      case "PRESENT": return <FaCheckCircle className="text-green-500" />;
-      case "ABSENT": return <FaTimesCircle className="text-red-500" />;
+      case "PRESENT": return ;
+      case "ABSENT": return ;
       case "LATE": return <FaExclamationTriangle className="text-yellow-500" />;
       default: return null;
     }
@@ -196,14 +196,7 @@ const AdminAllAttendance = () => {
                 <h1 className="text-3xl font-bold text-white">All Attendance</h1>
                 <p className="text-blue-100 mt-1">Manage and monitor employee attendance</p>
               </div>
-              <button
-                onClick={refreshData}
-                disabled={refreshing}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-all"
-              >
-                <FaSync className={`${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
+            
             </div>
           </div>
 

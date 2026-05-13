@@ -1,45 +1,61 @@
-// File: Components/Admin/AttendanceHistoryModal.js
+// File: Components/Admin/AttendanceHistoryModal.jsx
 import React, { useEffect, useState } from "react";
-import { FaTimes, FaCalendarTimes, FaSignInAlt, FaSignOutAlt } from "react-icons/fa";
+import { FaTimes, FaCalendarTimes, FaSignInAlt, FaSignOutAlt, FaCalendarAlt } from "react-icons/fa";
 import { apiFetch } from "../../../../Services/Api";
 import { toast } from "react-toastify";
 
 const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
   const [history, setHistory] = useState([]);
+  const [filteredHistory, setFilteredHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [stats, setStats] = useState({
     presentCount: 0,
     absentCount: 0,
     attendanceRate: 0,
-    totalDays: 30
+    totalDays: 0
   });
 
+  // Initial load when modal opens
   useEffect(() => {
     if (isOpen && user) {
-      fetchUserHistory();
+      fetchUserHistory("", "");
     }
   }, [isOpen, user]);
 
-  // ✅ FIX: Parse date string as LOCAL date to avoid UTC timezone shift
-  // "2025-05-12" parsed as new Date("2025-05-12") = UTC midnight = May 11 in IST (+5:30)
-  // This function forces local midnight so no date shift occurs
+  // Re-fetch when date filters change
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchUserHistory(startDate, endDate);
+    }
+  }, [startDate, endDate]);
+
+  // Parse date string as LOCAL date to avoid UTC timezone shift
   const parseLocalDate = (dateStr) => {
     if (!dateStr) return null;
-    const clean = dateStr.split("T")[0]; // strip time part if present
+    const clean = dateStr.split("T")[0];
     const [y, m, d] = clean.split("-").map(Number);
-    return new Date(y, m - 1, d); // local midnight — no UTC offset applied
+    return new Date(y, m - 1, d);
   };
 
-  const fetchUserHistory = async () => {
-   
-    if (!user?.id) {
+  const fetchUserHistory = async (start = "", end = "") => {
+    if (!user?.user_id) {
       toast.error("User ID not found");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await apiFetch(`/api/v1/admin/attendance/monthly/${user.user_id}`, {
+
+      // Build query with date params
+      const params = new URLSearchParams();
+      if (start) params.append("startDate", start);
+      if (end) params.append("endDate", end);
+      const query = params.toString();
+      const url = `/api/v1/admin/attendance/monthly/${user.user_id}${query ? `?${query}` : ""}`;
+
+      const res = await apiFetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -48,67 +64,59 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
       });
 
       const result = await res.json();
-
       if (!res.ok) throw new Error(result?.message || "Failed to load history");
 
-      const historyData = result?.data || [];
-      const last30Days = getLast30DaysDates();
-      const attendanceMap = new Map();
+      // Handle different response structures
+      let historyData = [];
+      if (result?.data && Array.isArray(result.data)) {
+        historyData = result.data;
+      } else if (result?.attendance && Array.isArray(result.attendance)) {
+        historyData = result.attendance;
+      } else if (Array.isArray(result)) {
+        historyData = result;
+      } else if (result?.records && Array.isArray(result.records)) {
+        historyData = result.records;
+      }
 
-      historyData.forEach(item => {
-        if (item.date) {
-          // ✅ FIX: Use parseLocalDate instead of new Date(item.date)
-          const dateKey = parseLocalDate(item.date).toDateString();
-          attendanceMap.set(dateKey, item);
-        }
+      // Filter out future dates
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const filteredData = historyData.filter(item => {
+        const itemDate = parseLocalDate(item.date);
+        return itemDate && itemDate <= today;
       });
 
-      const completeHistory = last30Days.map(date => {
-        const dateKey = date.toDateString(); // already local date from getLast30DaysDates
-        const existingRecord = attendanceMap.get(dateKey);
-        if (existingRecord) return existingRecord;
-        return {
-          date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`, // ✅ FIX: Build YYYY-MM-DD from local parts, not toISOString() which uses UTC
-          status: "",
-          punch_in: null,
-          punch_out: null,
-          working_hours: 0,
-          late_login_mins: 0,
-          early_logout_mins: 0
-        };
-      });
-
-      const sortedHistory = completeHistory.sort(
-        (a, b) => parseLocalDate(b.date) - parseLocalDate(a.date) // ✅ FIX: sort also uses parseLocalDate
+      // Sort newest first
+      const sortedHistory = filteredData.sort(
+        (a, b) => parseLocalDate(b.date) - parseLocalDate(a.date)
       );
+
       setHistory(sortedHistory);
+      setFilteredHistory(sortedHistory);
+      calculateStats(sortedHistory);
 
-      const presentCount = sortedHistory.filter(h => h.status?.toUpperCase() === "PRESENT").length;
-      const absentCount = sortedHistory.filter(h => h.status?.toUpperCase() === "ABSENT").length;
-      const attendanceRate =
-        sortedHistory.length > 0
-          ? ((presentCount / sortedHistory.length) * 100).toFixed(1)
-          : 0;
-
-      setStats({ presentCount, absentCount, attendanceRate, totalDays: sortedHistory.length });
+      if (sortedHistory.length === 0) {
+        toast.info("No attendance records found for this range");
+      }
     } catch (err) {
-      console.error(err);
       toast.error(err.message || "Failed to load history");
+      setHistory([]);
+      setFilteredHistory([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getLast30DaysDates = () => {
-    const dates = [];
-    const today = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      date.setHours(0, 0, 0, 0); // already local midnight — correct
-      dates.push(date);
-    }
-    return dates;
+  const calculateStats = (data) => {
+    const presentCount = data.filter(h => h.status?.toUpperCase() === "PRESENT").length;
+    const absentCount = data.filter(h => h.status?.toUpperCase() === "ABSENT").length;
+    const attendanceRate = data.length > 0 ? ((presentCount / data.length) * 100).toFixed(1) : 0;
+    setStats({ presentCount, absentCount, attendanceRate, totalDays: data.length });
+  };
+
+  const clearDateFilters = () => {
+    setStartDate("");
+    setEndDate("");
   };
 
   const getStatusColor = (status) => {
@@ -117,12 +125,12 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
       case "PRESENT": return "bg-green-500";
       case "ABSENT": return "bg-red-500";
       case "LATE": return "bg-yellow-500";
+      case "HALF-DAY": return "bg-orange-500";
       case "OFF": return "bg-purple-500";
       default: return "bg-gray-500";
     }
   };
 
-  // ✅ FIX: formatDate uses parseLocalDate to avoid timezone shift in display too
   const formatDate = (dateStr) => {
     if (!dateStr) return "--";
     try {
@@ -166,12 +174,12 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">30 Days Attendance History</h2>
+              <h2 className="text-2xl font-bold">Attendance History</h2>
               <p className="mt-1 text-blue-100">
                 {user?.firstname} {user?.lastname}
               </p>
@@ -188,6 +196,52 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
 
         {/* Body */}
         <div className="overflow-y-auto p-6" style={{ maxHeight: "calc(90vh - 120px)" }}>
+          {/* Date Range Filter */}
+          <div className="mb-6 rounded-lg bg-gray-50 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-gray-700">Filter by Date Range</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="relative">
+                <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Start Date"
+                  max={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+              <div className="relative">
+                <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-lg border py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="End Date"
+                  min={startDate}
+                  max={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+              {(startDate || endDate) && (
+                <button
+                  onClick={clearDateFilters}
+                  className="rounded-lg bg-red-100 px-4 py-2 text-red-600 transition hover:bg-red-200"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+            {(startDate || endDate) && (
+              <div className="mt-3 text-sm text-gray-600">
+                Showing {filteredHistory.length} records
+                {startDate && endDate && ` from ${startDate} to ${endDate}`}
+                {startDate && !endDate && ` from ${startDate}`}
+                {!startDate && endDate && ` up to ${endDate}`}
+              </div>
+            )}
+          </div>
+
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
@@ -200,40 +254,40 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
                 <div className="rounded-lg border-l-4 border-green-500 bg-green-50 p-4">
                   <p className="text-sm text-green-600 font-medium">Present</p>
                   <p className="text-2xl font-bold text-green-700">{stats.presentCount}</p>
-                  <p className="text-xs text-green-600">out of {stats.totalDays} days</p>
+                  <p className="text-xs text-green-600">total records</p>
                 </div>
                 <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
                   <p className="text-sm text-red-600 font-medium">Absent</p>
                   <p className="text-2xl font-bold text-red-700">{stats.absentCount}</p>
-                  <p className="text-xs text-red-600">out of {stats.totalDays} days</p>
+                  <p className="text-xs text-red-600">total records</p>
                 </div>
                 <div className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-4">
                   <p className="text-sm text-blue-600 font-medium">Total Records</p>
                   <p className="text-2xl font-bold text-blue-700">{stats.totalDays}</p>
-                  <p className="text-xs text-blue-600">last 30 days</p>
+                  <p className="text-xs text-blue-600">all time</p>
                 </div>
                 <div className="rounded-lg border-l-4 border-purple-500 bg-purple-50 p-4">
                   <p className="text-sm text-purple-600 font-medium">Attendance Rate</p>
                   <p className="text-2xl font-bold text-purple-700">{stats.attendanceRate}%</p>
-                  <p className="text-xs text-purple-600">overall</p>
+                  <p className="text-xs text-purple-600">of total records</p>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="mb-6 rounded-lg bg-gray-50 p-4">
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Attendance Rate (Last 30 Days)
-                  </span>
-                  <span className="text-sm font-medium text-gray-700">{stats.attendanceRate}%</span>
+              {stats.totalDays > 0 && (
+                <div className="mb-6 rounded-lg bg-gray-50 p-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Attendance Rate</span>
+                    <span className="text-sm font-medium text-gray-700">{stats.attendanceRate}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 rounded-full transition-all duration-500"
+                      style={{ width: `${stats.attendanceRate}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.attendanceRate}%` }}
-                  ></div>
-                </div>
-              </div>
+              )}
 
               {/* History Table */}
               <div className="overflow-x-auto">
@@ -250,9 +304,8 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {history.length > 0 ? (
-                      history.map((record, idx) => {
-                        // ✅ FIX: Use parseLocalDate for row date too
+                    {filteredHistory.length > 0 ? (
+                      filteredHistory.map((record, idx) => {
                         const dateObj = parseLocalDate(record.date);
                         const isToday =
                           dateObj && dateObj.toDateString() === new Date().toDateString();
@@ -326,7 +379,14 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 border-t bg-gray-50 p-4">
+        <div className="sticky bottom-0 border-t bg-gray-50 p-4 flex justify-between items-center">
+          <div className="text-sm text-gray-500">
+            {filteredHistory.length > 0 ? (
+              <>Showing {filteredHistory.length} attendance records</>
+            ) : (
+              <>No records found</>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="rounded-lg bg-blue-600 px-6 py-2 text-white transition hover:bg-blue-700"
