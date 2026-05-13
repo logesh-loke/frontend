@@ -277,7 +277,6 @@ const AttendanceCard = () => {
                 {Math.floor(workingMinutes / 60)} hrs {workingMinutes % 60} mins
               </p>
             </div>
-
             {status === "in" && workingMinutes >= 540 && (
               <p className="mt-2 text-xs text-green-600">
                 🎉 Congratulations! You've reached the 9-hour target!
@@ -286,7 +285,6 @@ const AttendanceCard = () => {
           </>
         )}
       </div>
-
       <AttendanceChart data={chartData} />
     </div>
   );

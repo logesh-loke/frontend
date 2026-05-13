@@ -365,6 +365,7 @@ const AttendanceDashboard = () => {
               >
                 Clear Filters
               </button>
+              
             </div>
           </div>
         </div>
