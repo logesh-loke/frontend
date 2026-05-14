@@ -417,7 +417,6 @@ function OtpLogin() {
               <label className="text-sm font-medium text-gray-700">OTP</label>
               <input
                 className="border px-4 py-2 w-full rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
-                placeholder="000000"
                 value={otp}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9]/g, '');
