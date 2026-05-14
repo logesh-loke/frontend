@@ -1,11 +1,11 @@
 import { Navigate } from "react-router-dom";
 
-export default function GuestRoute({ children }) {
+function GuestRoute({ children }) {
   const token = localStorage.getItem("token");
 
   let user = null;
 
-  // 🔐 Safely parse user
+  // Safely parse user
   try {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -16,22 +16,22 @@ export default function GuestRoute({ children }) {
     localStorage.removeItem("user");
   }
 
-  // 🟢 CASE 1: No token → allow guest pages (login/register)
+  // No token → allow guest pages (login/register)
   if (!token) {
     return children;
   }
 
-  // 🔴 CASE 2: Token exists but user missing → force login
+  // Token exists but user missing → force login
   if (token && !user) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     return <Navigate to="/login" replace />;
   }
 
-  // 🧠 Normalize role safely
+  // Normalize role safely
   const role = (user?.role || "").toLowerCase().trim();
 
-  // 🟣 CASE 3: Role-based redirect
+  // 3: Role-based redirect
   if (role === "admin") {
     return <Navigate to="/home" replace />;
   }
@@ -40,9 +40,11 @@ export default function GuestRoute({ children }) {
     return <Navigate to="/home" replace />;
   }
 
-  // ❌ CASE 4: Unknown role → reset session safely
+  //  Unknown role → reset session safely
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 
   return <Navigate to="/login" replace />;
 }
+
+export default GuestRoute;

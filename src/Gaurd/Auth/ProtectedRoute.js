@@ -1,11 +1,11 @@
 import { Navigate } from "react-router-dom";
 
-export default function ProtectedRoute({ children, allowedRoles = [] }) {
+function ProtectedRoute({ children, allowedRoles = [] }) {
   const token = localStorage.getItem("token");
 
   let user = null;
 
-  // 🔐 Safe user parsing
+  //  Safe user parsing
   try {
     const storedUser = localStorage.getItem("user");
 
@@ -26,10 +26,10 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return <Navigate to="/login" replace />;
   }
 
-  // 🧠 Normalize role safely
+  // Normalize role safely
   const role = (user?.role || "").toLowerCase().trim();
 
-  // 🔒 Role-based access control
+  // Role-based access control
   if (
     allowedRoles.length > 0 &&
     !allowedRoles.includes(role)
@@ -39,3 +39,4 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   return children;
 }
+export default ProtectedRoute;

@@ -6,12 +6,12 @@ const Header = () => {
   const dropdownRef = useRef();
   const navigate = useNavigate();
 
-  // ✅ GET USER
+  // GET USER
   const user = JSON.parse(localStorage.getItem("user"));
   const role = (user?.role || "").toLowerCase();
   const userName = user?.firstname || "U";
 
-  // 🔒 CLOSE DROPDOWN OUTSIDE
+  //  CLOSE DROPDOWN OUTSIDE
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {

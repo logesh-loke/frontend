@@ -54,11 +54,14 @@ function AdminUserAttendance() {
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
       case 'present':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800"><FaCheckCircle size={10} /> Present</span>;
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+          <FaCheckCircle size={10} /> Present</span>;
       case 'absent':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800"><FaTimesCircle size={10} /> Absent</span>;
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+          <FaTimesCircle size={10} /> Absent</span>;
       case 'late':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800"><FaExclamationTriangle size={10} /> Late</span>;
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+          <FaExclamationTriangle size={10} /> Late</span>;
       default:
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">Unknown</span>;
     }

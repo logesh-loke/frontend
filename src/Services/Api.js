@@ -2,7 +2,7 @@
 
 const BASE_URL = "http://localhost:8080";
 
-// 🔁 Refresh Token
+// Refresh Token
 async function refreshToken() {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/refresh-token`, {
@@ -22,12 +22,12 @@ async function refreshToken() {
 
     return data.accessToken;
   } catch (error) {
-    console.error("❌ Refresh token error:", error);
+    console.error(" Refresh token error:", error);
     return null;
   }
 }
 
-// 🚪 Logout (IMPORTANT)
+// Logout (IMPORTANT)
 export async function logoutUser() {
   try {
     await fetch(`${BASE_URL}/api/v1/logout`, {
@@ -44,7 +44,7 @@ export async function logoutUser() {
   window.location.href = "/login";
 }
 
-// 🌐 API Wrapper
+// API Wrapper
 export async function apiFetch(url, options = {}, retry = false) {
   try {
     const token = localStorage.getItem("token");
@@ -64,9 +64,9 @@ export async function apiFetch(url, options = {}, retry = false) {
       credentials: "include",
     });
 
-    // 🔐 Token expired → refresh once
+    // Token expired → refresh once
     if (response.status === 401 && !retry) {
-      console.warn("🔁 Token expired, refreshing...");
+      console.warn(" Token expired, refreshing...");
 
       const newToken = await refreshToken();
 
@@ -81,7 +81,7 @@ export async function apiFetch(url, options = {}, retry = false) {
 
         return response;
       } else {
-        console.error("❌ Refresh failed → logout");
+        console.error(" Refresh failed → logout");
         await logoutUser();
         return;
       }
@@ -90,7 +90,7 @@ export async function apiFetch(url, options = {}, retry = false) {
     return response;
 
   } catch (err) {
-    console.error("❌ API FETCH ERROR:", err);
+    console.error(" API FETCH ERROR:", err);
     throw err;
   }
 }

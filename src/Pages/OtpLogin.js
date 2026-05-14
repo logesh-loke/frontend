@@ -42,7 +42,7 @@ function OtpLogin() {
 
     // Email or phone format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^[0-9+\-\s()]{10,15}$/;
+    const phoneRegex = /^[0-9+\-\s()]{10}$/;
     
     if (!emailRegex.test(identifier) && !phoneRegex.test(identifier)) {
       Swal.fire({
@@ -163,7 +163,8 @@ function OtpLogin() {
     
       };
 
-      role = roleMapping[role] || "user"; // Default to user if role not recognized
+      // Default to user if role not recognized
+      role = roleMapping[role] || "user";
 
       // Ensure role is either 'admin' or 'user'
       if (role !== "admin" && role !== "user") {
@@ -185,7 +186,7 @@ function OtpLogin() {
       localStorage.setItem("lastLogin", new Date().toISOString());
 
       // Set session expiry (8 hours)
-      const expiryTime = new Date().getTime() + (8 * 60 * 60 * 1000);
+      const expiryTime = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
       localStorage.setItem("sessionExpiry", expiryTime);
 
       // Show success message with role
@@ -206,7 +207,7 @@ function OtpLogin() {
         }
       });
 
-      // 🔁 Redirect based on role
+      //  Redirect based on role
       // Admin goes to /user-profile, User goes to /home
       setTimeout(() => {
         if (role === "admin") {

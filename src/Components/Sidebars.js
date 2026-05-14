@@ -5,7 +5,7 @@ const Sidebar = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const role = (user?.role || "").toLowerCase();
 
-  // 👤 USER MENU
+  //  USER MENU
   const userMenu = [
     { name: "Home", path: "/home" },
     { name: "Attendance History", path: "/attendance-history" },
@@ -20,7 +20,7 @@ const Sidebar = () => {
     { name: "Profile", path: "/admin-profile" },
   ];
 
-  // 🔥 SWITCH BASED ON ROLE
+  //  SWITCH BASED ON ROLE
   const menu = role === "admin" ? adminMenu : userMenu;
 
   return (

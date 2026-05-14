@@ -16,9 +16,7 @@ const AttendanceDashboard = () => {
     loadHistory();
   }, []);
 
-  // ========================================
   // HELPER: PARSE TIME STRING
-  // ========================================
   
   const parseTimeString = (timeStr) => {
     if (!timeStr) return null;
@@ -163,9 +161,7 @@ const AttendanceDashboard = () => {
     }
   };
 
-  // ========================================
   // FILTER HANDLER
-  // ========================================
 
   const handleFilterChange = (e) => {
     setFilters({
@@ -174,9 +170,7 @@ const AttendanceDashboard = () => {
     });
   };
 
-  // ========================================
   // FILTER LOGIC
-  // ========================================
 
   const filteredHistory = history.filter((item) => {
     const itemDate = item?.date ? new Date(item.date) : null;
@@ -198,9 +192,7 @@ const AttendanceDashboard = () => {
     return matchStatus && matchFrom && matchTo;
   });
 
-  // ========================================
   // SUMMARY COUNTS
-  // ========================================
 
   const presentCount = history.filter(
     (i) => i.status?.toUpperCase() === "PRESENT"
