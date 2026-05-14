@@ -17,6 +17,7 @@ function OtpLogin() {
   const [verifyLoading, setVerifyLoading] = useState(false);
 
   const [error, setError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const BASE = "http://localhost:8080";
 
@@ -33,6 +34,22 @@ function OtpLogin() {
         confirmButtonText: "OK",
         position: "center",
         backdrop: true,
+        timer: 2000,
+        showConfirmButton: false
+      });
+      return;
+    }
+
+    // Email or phone format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9+\-\s()]{10,15}$/;
+    
+    if (!emailRegex.test(identifier) && !phoneRegex.test(identifier)) {
+      Swal.fire({
+        title: "Invalid Format",
+        text: "Please enter a valid email or phone number",
+        icon: "warning",
+        confirmButtonColor: "#d33",
         timer: 2000,
         showConfirmButton: false
       });
@@ -56,7 +73,6 @@ function OtpLogin() {
         throw new Error(data.message || "Failed to send OTP");
       }
 
-      // Show success message
       Swal.fire({
         title: "OTP Sent!",
         text: "Please check your email for OTP",
@@ -70,6 +86,7 @@ function OtpLogin() {
       setStep(2);
       setTimer(59);
       setCanResend(false);
+      setResendCooldown(59);
 
     } catch (err) {
       Swal.fire({
@@ -106,6 +123,18 @@ function OtpLogin() {
       return;
     }
 
+    if (otp.length !== 6 || !/^\d+$/.test(otp)) {
+      Swal.fire({
+        title: "Invalid OTP",
+        text: "OTP must be 6 digits",
+        icon: "warning",
+        confirmButtonColor: "#d33",
+        timer: 2000,
+        showConfirmButton: false
+      });
+      return;
+    }
+
     try {
       setVerifyLoading(true);
       setError("");
@@ -123,21 +152,50 @@ function OtpLogin() {
         throw new Error(data.message || "Invalid OTP");
       }
 
-      // 🔐 Normalize role
-      const role = (data.user.role || data.user.accessLevel || "")
+      // 🔐 Normalize role - only admin or user
+      let role = (data.user.role || data.user.accessLevel || "")
         .toLowerCase()
         .trim();
 
-      // ✅ Store user
-      const userInfo = { ...data.user, role };
+      // Map role aliases to standard roles (admin or user only)
+      const roleMapping = {
+        "admin": "admin",
+    
+      };
 
+      role = roleMapping[role] || "user"; // Default to user if role not recognized
+
+      // Ensure role is either 'admin' or 'user'
+      if (role !== "admin" && role !== "user") {
+        role = "user";
+      }
+
+      // ✅ Store user info
+      const userInfo = { 
+        ...data.user, 
+        role,
+        loginTime: new Date().toISOString()
+      };
+
+      // Store tokens and user data
       localStorage.setItem("token", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken || "");
       localStorage.setItem("user", JSON.stringify(userInfo));
+      localStorage.setItem("userRole", role);
+      localStorage.setItem("lastLogin", new Date().toISOString());
 
-      // Show success message
+      // Set session expiry (8 hours)
+      const expiryTime = new Date().getTime() + (8 * 60 * 60 * 1000);
+      localStorage.setItem("sessionExpiry", expiryTime);
+
+      // Show success message with role
+      const welcomeMessage = role === "admin" 
+        ? `Welcome back, Admin ${userInfo.firstname || userInfo.name || "User"}!`
+        : `Welcome back, ${userInfo.firstname || userInfo.name || "User"}!`;
+      
       Swal.fire({
         title: "Login Successful!",
-        text: `Welcome back, ${userInfo.firstname || userInfo.name || "User"}!`,
+        text: welcomeMessage,
         icon: "success",
         position: "center",
         timer: 2000,
@@ -149,11 +207,12 @@ function OtpLogin() {
       });
 
       // 🔁 Redirect based on role
+      // Admin goes to /user-profile, User goes to /home
       setTimeout(() => {
         if (role === "admin") {
-          navigate("/admin-dashboard");
+          navigate("/user-profile");
         } else {
-          navigate("/profile");
+          navigate("/home");
         }
       }, 2000);
 
@@ -168,6 +227,9 @@ function OtpLogin() {
         backdrop: true
       });
       setError(err.message);
+      
+      // Clear any existing session on failure
+      clearSession();
     } finally {
       setVerifyLoading(false);
     }
@@ -175,7 +237,7 @@ function OtpLogin() {
 
   // ================= RESEND OTP =================
   const resendOtp = async () => {
-    if (loading) return;
+    if (loading || resendCooldown > 0) return;
 
     try {
       setLoading(true);
@@ -206,6 +268,7 @@ function OtpLogin() {
 
       setTimer(59);
       setCanResend(false);
+      setResendCooldown(59);
 
     } catch (err) {
       Swal.fire({
@@ -223,9 +286,21 @@ function OtpLogin() {
     }
   };
 
-  // ================= TIMER =================
+  // ================= HELPER FUNCTIONS =================
+  
+  const clearSession = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("lastLogin");
+    localStorage.removeItem("sessionExpiry");
+  };
+
+  // ================= TIMER EFFECTS =================
   useEffect(() => {
     let interval;
+    let cooldownInterval;
 
     if (step === 2 && timer > 0) {
       interval = setInterval(() => setTimer((t) => t - 1), 1000);
@@ -233,8 +308,47 @@ function OtpLogin() {
       setCanResend(true);
     }
 
-    return () => clearInterval(interval);
-  }, [timer, step]);
+    // Handle resend cooldown
+    if (resendCooldown > 0) {
+      cooldownInterval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(cooldownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(cooldownInterval);
+    };
+  }, [timer, step, resendCooldown]);
+
+  // Check for existing session on component mount
+  useEffect(() => {
+    const checkExistingSession = () => {
+      const token = localStorage.getItem("token");
+      const sessionExpiry = localStorage.getItem("sessionExpiry");
+      const userRole = localStorage.getItem("userRole");
+      
+      if (token && sessionExpiry && new Date().getTime() < parseInt(sessionExpiry)) {
+        // Session is valid, redirect based on role
+        if (userRole === "admin") {
+          navigate("/user-profile");
+        } else {
+          navigate("/home");
+        }
+      } else if (sessionExpiry && new Date().getTime() >= parseInt(sessionExpiry)) {
+        // Session expired
+        clearSession();
+      }
+    };
+    
+    checkExistingSession();
+  }, [navigate]);
 
   // Format timer display
   const formatTime = (seconds) => {
@@ -289,39 +403,55 @@ function OtpLogin() {
             >
               {loading ? "Sending..." : "Send OTP"}
             </button>
+
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              By continuing, you agree to our Terms of Service
+            </p>
           </>
         )}
 
         {/* STEP 2 */}
         {step === 2 && (
           <>
-            <label className="text-sm font-medium text-gray-700">OTP</label>
-            <input
-              className="border px-4 py-2 w-full rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter 6-digit OTP"
-              value={otp}
-              onChange={(e) => {
-                setOtp(e.target.value);
-                setError("");
-              }}
-              maxLength={6}
-            />
+            <div className="mb-2">
+              <label className="text-sm font-medium text-gray-700">OTP</label>
+              <input
+                className="border px-4 py-2 w-full rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  if (value.length <= 6) {
+                    setOtp(value);
+                    setError("");
+                  }
+                }}
+                maxLength={6}
+                pattern="\d*"
+              />
+            </div>
 
             {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
             <div className="flex justify-between items-center text-sm mb-3">
               <span className={`font-mono ${timer > 0 ? "text-gray-600" : "text-gray-400"}`}>
-                {timer > 0 ? formatTime(timer) : "Expired"}
+                {timer > 0 ? formatTime(timer) : "OTP Expired"}
               </span>
 
-              {canResend && (
+              {canResend && resendCooldown === 0 && (
                 <button 
                   onClick={resendOtp} 
                   disabled={loading}
-                  className="text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                  className="text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 transition"
                 >
                   Resend OTP
                 </button>
+              )}
+              
+              {resendCooldown > 0 && (
+                <span className="text-gray-400">
+                  Resend available in {resendCooldown}s
+                </span>
               )}
             </div>
 
@@ -332,6 +462,7 @@ function OtpLogin() {
             >
               {verifyLoading ? "Verifying..." : "Verify OTP"}
             </button>
+
           </>
         )}
       </div>

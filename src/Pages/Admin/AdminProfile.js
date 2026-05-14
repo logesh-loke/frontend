@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../Services/Api";
 import Swal from "sweetalert2";
-import { FaEdit, FaCheck, FaEnvelope, FaPhone, FaMapMarkerAlt, FaUserShield } from "react-icons/fa";
+import { FaEdit, FaCheck, FaEnvelope, FaPhone, FaMapMarkerAlt, FaUserShield, FaArrowLeft } from "react-icons/fa";
 
 function AdminProfile() {
   const navigate = useNavigate();
@@ -36,6 +36,7 @@ function AdminProfile() {
           return;
         }
 
+        // ✅ CORRECTED: Match backend route - no ID needed
         const response = await apiFetch("/api/v1/admin/profile", {
           method: "GET",
           headers: {
@@ -44,7 +45,12 @@ function AdminProfile() {
           }
         });
 
-        if (!response.ok) throw new Error("Unauthorized");
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("Unauthorized");
+          }
+          throw new Error("Failed to load profile");
+        }
 
         const data = await response.json();
         const userInfo = data?.data || data?.user;
@@ -72,7 +78,7 @@ function AdminProfile() {
         
         Swal.fire({
           title: "Session Expired",
-          text: "Please login again",
+          text: err.message || "Please login again",
           icon: "error",
           confirmButtonColor: "#3085d6",
           confirmButtonText: "OK"
@@ -134,6 +140,53 @@ function AdminProfile() {
     try {
       setUpdating(true);
       
+      // Validate required fields
+      if (!form.firstname?.trim()) {
+        Swal.fire({
+          title: "Validation Error",
+          text: "First name is required",
+          icon: "error",
+          confirmButtonColor: "#3085d6"
+        });
+        setUpdating(false);
+        return;
+      }
+
+      if (!form.lastname?.trim()) {
+        Swal.fire({
+          title: "Validation Error",
+          text: "Last name is required",
+          icon: "error",
+          confirmButtonColor: "#3085d6"
+        });
+        setUpdating(false);
+        return;
+      }
+
+      if (!form.email?.trim()) {
+        Swal.fire({
+          title: "Validation Error",
+          text: "Email is required",
+          icon: "error",
+          confirmButtonColor: "#3085d6"
+        });
+        setUpdating(false);
+        return;
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email)) {
+        Swal.fire({
+          title: "Validation Error",
+          text: "Please enter a valid email address",
+          icon: "error",
+          confirmButtonColor: "#3085d6"
+        });
+        setUpdating(false);
+        return;
+      }
+
       // Show loading
       Swal.fire({
         title: "Updating Profile",
@@ -147,25 +200,22 @@ function AdminProfile() {
       });
 
       const token = localStorage.getItem("token");
-      const userId = user?._id || user?.id;
-
-      if (!userId) {
-        Swal.fire({
-          title: "Error",
-          text: "User ID not found",
-          icon: "error",
-          confirmButtonColor: "#3085d6"
-        });
-        return;
-      }
-
-      const response = await apiFetch(`/api/v1/admin/profile/${userId}`, {
+      
+      // ✅ CORRECTED: Use PUT to /admin/profile (without ID in URL)
+      // The backend should get the user ID from the token
+      const response = await apiFetch("/api/v1/admin/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          firstname: form.firstname,
+          lastname: form.lastname,
+          email: form.email,
+          contactno: form.contactno,
+          address: form.address
+        })
       });
 
       const data = await response.json();
@@ -175,6 +225,14 @@ function AdminProfile() {
       }
 
       const updatedUser = data?.data || data?.user || { ...user, ...form };
+
+      // Capitalize names in updated user
+      if (updatedUser.firstname) {
+        updatedUser.firstname = capitalizeName(updatedUser.firstname);
+      }
+      if (updatedUser.lastname) {
+        updatedUser.lastname = capitalizeName(updatedUser.lastname);
+      }
 
       setUser(updatedUser);
       setForm(updatedUser);
@@ -235,6 +293,14 @@ function AdminProfile() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 md:p-10">
       <div className="mx-auto max-w-5xl">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-800 transition"
+        >
+          <FaArrowLeft /> Back
+        </button>
+
         <h1 className="mb-8 text-3xl font-bold text-gray-800">Admin Profile</h1>
 
         <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
@@ -270,17 +336,17 @@ function AdminProfile() {
                 <p className="font-mono text-gray-800">{user._id || user.id}</p>
               </div>
               <div className="rounded-xl bg-gray-50 p-5 shadow-sm">
-                <p className="mb-1 text-sm text-gray-500">Status</p>
-                <p className="font-semibold text-green-600">● Active</p>
+                <p className="mb-1 text-sm text-gray-500">Role</p>
+                <p className="font-semibold text-purple-600">● {user.role || "Admin"}</p>
               </div>
             </div>
 
             {/* Form Fields */}
             <div className="space-y-6">
               {[
-                { label: "First Name", name: "firstname", type: "text" },
-                { label: "Last Name", name: "lastname", type: "text" },
-                { label: "Email", name: "email", type: "email", icon: FaEnvelope },
+                { label: "First Name", name: "firstname", type: "text", required: true },
+                { label: "Last Name", name: "lastname", type: "text", required: true },
+                { label: "Email", name: "email", type: "email", icon: FaEnvelope, required: true },
                 { label: "Contact Number", name: "contactno", type: "tel", icon: FaPhone },
                 { label: "Address", name: "address", type: "textarea", icon: FaMapMarkerAlt }
               ].map((field) => (
@@ -288,6 +354,7 @@ function AdminProfile() {
                   <label className="mb-2 flex items-center text-sm font-semibold text-gray-500">
                     {field.icon && <field.icon className="mr-2" />}
                     {field.label}
+                    {field.required && <span className="ml-1 text-red-500">*</span>}
                   </label>
                   {editing ? (
                     field.type === "textarea" ? (
@@ -307,6 +374,7 @@ function AdminProfile() {
                         onChange={handleChange}
                         className="w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder={`Enter ${field.label.toLowerCase()}`}
+                        required={field.required}
                       />
                     )
                   ) : (
@@ -323,7 +391,8 @@ function AdminProfile() {
               <div className="mt-8 flex justify-end gap-4">
                 <button 
                   onClick={handleCancel} 
-                  className="rounded-lg bg-gray-200 px-6 py-3 text-gray-700 transition hover:bg-gray-300"
+                  disabled={updating}
+                  className="rounded-lg bg-gray-200 px-6 py-3 text-gray-700 transition hover:bg-gray-300 disabled:opacity-50"
                 >
                   Cancel
                 </button>

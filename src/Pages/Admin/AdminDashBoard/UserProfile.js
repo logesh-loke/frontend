@@ -3,11 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../../Services/Api";
 import Swal from "sweetalert2";
 import { 
-  FaEdit, FaTrash, FaSearch, FaUser, FaUsers, FaShieldAlt, 
+  FaEdit, FaTrash, FaSearch, FaUsers, FaShieldAlt, 
   FaUserTag, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard,
-  FaEye, FaChartLine, FaCalendarAlt, FaClock, FaUserCircle,
-  FaCheckCircle, FaTimesCircle, FaDownload, FaPrint, FaFilter,
-  FaExclamationTriangle, FaSync, FaHome
+  FaChartLine, FaClock, FaUserCircle, FaFilter, FaSync, FaSpinner
 } from "react-icons/fa";
 import UserEdit from "./UserEdit";
 
@@ -18,17 +16,17 @@ function AdminUsersTable() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
-  const [attendanceData, setAttendanceData] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
   const navigate = useNavigate();
 
   // LOAD USERS
   useEffect(() => {
     loadUsers();
-    loadAttendanceData();
   }, []);
 
   const loadUsers = async () => {
     try {
+      setLoading(true);
       const res = await apiFetch("/api/v1/admin/users");
       const data = await res.json();
 
@@ -53,30 +51,14 @@ function AdminUsersTable() {
     }
   };
 
-  const loadAttendanceData = async () => {
-    try {
-      const res = await apiFetch("/api/v1/admin/attendance/today");
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data?.message || "Failed to load attendance");
-      }
-      
-      setAttendanceData(data?.data || []);
-    } catch (err) {
-      console.error("ATTENDANCE ERROR:", err);
-      setAttendanceData([]);
-    }
-  };
-
   const refreshData = async () => {
     setRefreshing(true);
-    await Promise.all([loadUsers(), loadAttendanceData()]);
+    await loadUsers();
     setRefreshing(false);
     
     Swal.fire({
       title: "Refreshed!",
-      text: "Data refreshed successfully",
+      text: "User list refreshed successfully",
       icon: "success",
       timer: 1500,
       showConfirmButton: false,
@@ -85,6 +67,7 @@ function AdminUsersTable() {
     });
   };
 
+  // ✅ CORRECTED DELETE FUNCTION
   const deleteUser = async (id, userName) => {
     // SweetAlert2 confirmation dialog
     const result = await Swal.fire({
@@ -103,21 +86,14 @@ function AdminUsersTable() {
       return;
     }
 
-    // Show loading state
-    Swal.fire({
-      title: 'Deleting...',
-      text: 'Please wait while we delete the user',
-      icon: 'info',
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
+    // Set deleting state for this user
+    setDeletingId(id);
 
     try {
       const token = localStorage.getItem("token");
-      const res = await apiFetch(`/api/v1/admin/users/${id}`, {
+      
+      // ✅ CORRECT API ENDPOINT - Changed to match backend
+      const res = await apiFetch(`/api/v1/delete/user/${id}`, {
         method: "DELETE",
         headers: { 
           "Content-Type": "application/json", 
@@ -125,9 +101,11 @@ function AdminUsersTable() {
         }
       });
       
-      const result = await res.json();
+      const data = await res.json();
       
-      if (!res.ok) throw new Error(result?.message || "Delete failed");
+      if (!res.ok) {
+        throw new Error(data?.message || "Delete failed");
+      }
       
       // Success message
       Swal.fire({
@@ -136,39 +114,34 @@ function AdminUsersTable() {
         icon: 'success',
         timer: 2000,
         showConfirmButton: false,
+        position: "center",
       });
       
-      loadUsers();
+      // Reload users list
+      await loadUsers();
+      
     } catch (err) {
-      console.error(err);
+      console.error("Delete error:", err);
       
       Swal.fire({
         title: 'Error!',
-        text: err.message || "Something went wrong",
+        text: err.message || "Something went wrong while deleting the user",
         icon: 'error',
         confirmButtonColor: '#3085d6',
         confirmButtonText: 'OK'
       });
+    } finally {
+      setDeletingId(null);
     }
   };
-
-  // Calculate attendance stats
-  const calculateAttendanceStats = () => {
-    const present = attendanceData.filter(a => a.status?.toUpperCase() === "PRESENT").length;
-    const absent = attendanceData.filter(a => a.status?.toUpperCase() === "ABSENT").length;
-    const late = attendanceData.filter(a => a.lateMinutes > 0 || a.status?.toUpperCase() === "LATE").length;
-    
-    return { present, absent, late };
-  };
-
-  const attendanceStats = calculateAttendanceStats();
 
   // Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = searchTerm === "" || 
       user.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.contactno?.includes(searchTerm);
     
     const matchesRole = roleFilter === "ALL" || user.role?.toUpperCase() === roleFilter;
     
@@ -179,21 +152,16 @@ function AdminUsersTable() {
   const stats = {
     total: users.length,
     admins: users.filter(u => u.role?.toLowerCase() === 'admin').length,
-    employees: users.filter(u => u.role?.toLowerCase() === 'employee' || u.role?.toLowerCase() === 'user').length,
+    users: users.filter(u => u.role?.toLowerCase() === 'user').length,
     active: users.length,
-    present: attendanceStats.present,
-    absent: attendanceStats.absent,
-    late: attendanceStats.late
   };
 
   const getRoleBadge = (role) => {
     switch (role?.toLowerCase()) {
       case 'admin':
         return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md"><FaShieldAlt size={12} /> Admin</span>;
-      case 'employee':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"><FaUserTag size={12} /> Employee</span>;
       case 'user':
-        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"><FaUserCircle size={12} /> User</span>;
+        return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"><FaUserCircle size={12} /> User</span>;
       default:
         return <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-md">{role || 'User'}</span>;
     }
@@ -202,6 +170,7 @@ function AdminUsersTable() {
   const formatDate = () => {
     return new Date().toLocaleString();
   };
+
   // LOADING
   if (loading) {
     return (
@@ -222,7 +191,74 @@ function AdminUsersTable() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto">
-       
+        
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                User Management
+              </h1>
+              <p className="text-gray-500 mt-1">Manage and monitor all registered users</p>
+            </div>
+            <button
+              onClick={refreshData}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+            >
+              {refreshing ? <FaSpinner className="animate-spin" /> : <FaSync />}
+              Refresh
+            </button>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Total Users</p>
+                  <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <FaUsers className="text-blue-600 text-xl" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Admins</p>
+                  <p className="text-3xl font-bold text-gray-800">{stats.admins}</p>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <FaShieldAlt className="text-purple-600 text-xl" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Regular Users</p>
+                  <p className="text-3xl font-bold text-gray-800">{stats.users}</p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-full">
+                  <FaUserCircle className="text-green-600 text-xl" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-orange-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Active Now</p>
+                  <p className="text-3xl font-bold text-gray-800">{stats.active}</p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-full">
+                  <FaChartLine className="text-orange-600 text-xl" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Filters and Search */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
@@ -238,7 +274,7 @@ function AdminUsersTable() {
               />
             </div>
             
-            {/* <div className="relative">
+            <div className="relative">
               <FaFilter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <select
                 value={roleFilter}
@@ -246,9 +282,10 @@ function AdminUsersTable() {
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none appearance-none cursor-pointer bg-white"
               >
                 <option value="ALL">All Roles</option>
-                <option value="ADMIN"> Admins</option>
+                <option value="ADMIN">Admins</option>
+                <option value="USER">Users</option>
               </select>
-            </div> */}
+            </div>
 
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm text-gray-600 bg-gradient-to-r from-gray-100 to-gray-50 px-4 py-2 rounded-xl">
@@ -269,23 +306,14 @@ function AdminUsersTable() {
               )}
             </div>
           </div>
-          <div className="mt-4 text-sm text-gray-500 flex items-center gap-2">
-            <FaChartLine className="text-blue-400" />
-            Showing {filteredUsers.length} of {users.length} registered users
-          </div>
         </div>
 
         {/* Users Table */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="px-6 py-5 bg-gradient-to-r from-slate-50 to-gray-100 border-b">
-            <div className="flex justify-between items-center flex-wrap gap-4">
-              <div>
-                <h2 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                  User Profiles
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">Manage all registered users</p>
-              </div>
-            </div>
+            <h2 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              User Profiles
+            </h2>
           </div>
 
           <div className="overflow-x-auto">
@@ -356,10 +384,15 @@ function AdminUsersTable() {
                           </button>
                           <button
                             onClick={() => deleteUser(user.id, `${user.firstname} ${user.lastname}`)}
-                            className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition shadow-md text-xs font-medium flex items-center gap-2"
+                            disabled={deletingId === user.id}
+                            className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition shadow-md text-xs font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <FaTrash size={12} />
-                            Delete
+                            {deletingId === user.id ? (
+                              <FaSpinner className="animate-spin" size={12} />
+                            ) : (
+                              <FaTrash size={12} />
+                            )}
+                            {deletingId === user.id ? "Deleting..." : "Delete"}
                           </button>
                         </div>
                       </td>
