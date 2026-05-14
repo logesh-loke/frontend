@@ -39,73 +39,64 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
     return new Date(y, m - 1, d);
   };
 
-  const fetchUserHistory = async (start = "", end = "") => {
-    if (!user?.user_id) {
-      toast.error("User ID not found");
-      return;
-    }
+const fetchUserHistory = async (start = "", end = "") => {
+  if (!user?.user_id) {
+    toast.error("User ID not found");
+    return;
+  }
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // Build query with date params
-      const params = new URLSearchParams();
-      if (start) params.append("startDate", start);
-      if (end) params.append("endDate", end);
-      const query = params.toString();
-      const url = `/api/v1/admin/attendance/monthly/${user.user_id}${query ? `?${query}` : ""}`;
+    const params = new URLSearchParams();
+    if (start) params.append("startDate", start);
+    if (end) params.append("endDate", end);
+    const query = params.toString();
+    const url = `/api/v1/admin/attendance/history/${user.user_id}${query ? `?${query}` : ""}`;
 
-      const res = await apiFetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result?.message || "Failed to load history");
-
-      // Handle different response structures
-      let historyData = [];
-      if (result?.data && Array.isArray(result.data)) {
-        historyData = result.data;
-      } else if (result?.attendance && Array.isArray(result.attendance)) {
-        historyData = result.attendance;
-      } else if (Array.isArray(result)) {
-        historyData = result;
-      } else if (result?.records && Array.isArray(result.records)) {
-        historyData = result.records;
+    const res = await apiFetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
       }
+    });
 
-      // Filter out future dates
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const filteredData = historyData.filter(item => {
-        const itemDate = parseLocalDate(item.date);
-        return itemDate && itemDate <= today;
-      });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result?.message || "Failed to load history");
 
-      // Sort newest first
-      const sortedHistory = filteredData.sort(
-        (a, b) => parseLocalDate(b.date) - parseLocalDate(a.date)
-      );
+    const historyData = Array.isArray(result.data) ? result.data : [];
 
-      setHistory(sortedHistory);
-      setFilteredHistory(sortedHistory);
-      calculateStats(sortedHistory);
+    // Sort newest first
+    const sortedHistory = [...historyData].sort((a, b) => {
+  const [ay, am, ad] = a.date.split("-").map(Number);
+  const [by, bm, bd] = b.date.split("-").map(Number);
+  return new Date(by, bm-1, bd) - new Date(ay, am-1, ad);
+});
+console.log("SORTED =>", sortedHistory);
+setHistory(sortedHistory);
+    setFilteredHistory(sortedHistory);
 
-      if (sortedHistory.length === 0) {
-        toast.info("No attendance records found for this range");
-      }
-    } catch (err) {
-      toast.error(err.message || "Failed to load history");
-      setHistory([]);
-      setFilteredHistory([]);
-    } finally {
-      setLoading(false);
+    // Use backend summary
+    const summary = result.summary || {};
+    setStats({
+      presentCount: summary.present || 0,
+      absentCount: summary.absent || 0,
+      attendanceRate: summary.attendanceRate || 0,
+      totalDays: summary.total || 0
+    });
+
+    if (sortedHistory.length === 0) {
+      toast.info("No attendance records found for this range");
     }
-  };
+  } catch (err) {
+    toast.error(err.message || "Failed to load history");
+    setHistory([]);
+    setFilteredHistory([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const calculateStats = (data) => {
     const presentCount = data.filter(h => h.status?.toUpperCase() === "PRESENT").length;
@@ -174,7 +165,7 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative max-h-[95vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
           <div className="flex items-center justify-between">
@@ -195,7 +186,7 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto p-6" style={{ maxHeight: "calc(90vh - 120px)" }}>
+        <div className="overflow-y-auto p-6" style={{ maxHeight: "calc(90vh - 80px)" }}>
           {/* Date Range Filter */}
           <div className="mb-6 rounded-lg bg-gray-50 p-4">
             <h3 className="mb-3 text-sm font-semibold text-gray-700">Filter by Date Range</h3>
@@ -379,7 +370,7 @@ const AttendanceHistoryModal = ({ isOpen, onClose, user, token }) => {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 border-t bg-gray-50 p-4 flex justify-between items-center">
+       <div className="border-t bg-gray-50 p-4 flex justify-between items-center">
           <div className="text-sm text-gray-500">
             {filteredHistory.length > 0 ? (
               <>Showing {filteredHistory.length} attendance records</>
