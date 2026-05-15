@@ -33,7 +33,7 @@ function Profile() {
         if (!res.ok) throw new Error("Unauthorized");
 
         const data = await res.json();
-        const userInfo = data?.data || data?.user;
+        const userInfo = data?.user;
         if (!userInfo) throw new Error("Invalid user");
 
         // Capitalize first and last name when loading
@@ -178,7 +178,7 @@ function Profile() {
     );
   }
 
-  const role = (user?.role || "").toLowerCase();
+  const role = (user?.role).toLowerCase();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">

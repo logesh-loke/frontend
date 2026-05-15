@@ -15,7 +15,7 @@ const Layout = ({ children }) => {
         {/*  Header (fixed inside layout) */}
         <Header />
 
-        {/* Scroll Container with SNAP */}
+        {/* Scroll Container with SNAP */}  
         <div className="flex-1 overflow-y-auto snap-y snap-mandatory scroll-smooth ml-3">
           {children}
         </div>

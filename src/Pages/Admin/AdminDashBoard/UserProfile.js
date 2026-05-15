@@ -12,7 +12,6 @@ import UserEdit from "./UserEdit";
 function AdminUsersTable() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -49,22 +48,6 @@ function AdminUsersTable() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const refreshData = async () => {
-    setRefreshing(true);
-    await loadUsers();
-    setRefreshing(false);
-    
-    Swal.fire({
-      title: "Refreshed!",
-      text: "User list refreshed successfully",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-      position: "top-end",
-      toast: true,
-    });
   };
 
   // ✅ CORRECTED DELETE FUNCTION

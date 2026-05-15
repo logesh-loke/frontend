@@ -10,11 +10,11 @@ function UserEdit({ user, onClose, reloadUsers }) {
   // ==========================
 
   const [formData, setFormData] = useState({
-    firstname: user?.firstname || "",
-    lastname: user?.lastname || "",
-    email: user?.email || "",
-    contactno: user?.contactno || "",
-    address: user?.address || "",
+    firstname: user?.firstname ,
+    lastname: user?.lastname ,
+    email: user?.email ,
+    contactno: user?.contactno,
+    address: user?.address,
     role: user?.role || "user",
   });
 

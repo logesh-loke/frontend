@@ -109,11 +109,11 @@ const Register = () => {
       const loginData = await loginRes.json();
 
       if (loginRes.ok && loginData.success) {
-        // ✅ STORE TOKEN
+        //  STORE TOKEN
         localStorage.setItem("token", loginData.accessToken);
         localStorage.setItem("user", JSON.stringify(loginData.user));
 
-        // 3️⃣ REDIRECT with welcome message
+        // 3️ REDIRECT with welcome message
         Swal.fire({
           title: "Welcome!",
           text: `Hello ${form.firstname} ${form.lastname}!`,
@@ -125,7 +125,7 @@ const Register = () => {
           navigate("/profile");
         });
       } else {
-        showAlert("Auto Login Failed", "Auto login failed ❌", "warning", 3000);
+        showAlert("Auto Login Failed", "Auto login failed   ", "warning", 3000);
         setTimeout(() => {
           navigate("/login");
         }, 1500);
@@ -142,7 +142,7 @@ const Register = () => {
       });
 
     } catch (err) {
-      showAlert("Server Error", "Server error ❌", "error", 3000);
+      showAlert("Server Error", "Server error ", "error", 3000);
     } finally {
       setLoading(false);
     }

@@ -18,7 +18,6 @@ const AdminAllAttendance = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -72,7 +71,6 @@ const AdminAllAttendance = () => {
       toast.error(err.message || "Something went wrong");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -114,11 +112,6 @@ const AdminAllAttendance = () => {
     setSelectedUser(null);
   };
 
-  const refreshData = async () => {
-    setRefreshing(true);
-    await loadAttendance();
-    toast.success("Data refreshed successfully");
-  };
 
   const clearAllFilters = () => {
     setSearchTerm("");
@@ -395,7 +388,6 @@ const AdminAllAttendance = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
                     className="px-3 py-1 rounded border bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
                     Previous
