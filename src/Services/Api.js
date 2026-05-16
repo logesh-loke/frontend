@@ -32,7 +32,7 @@ export async function logoutUser() {
   try {
     await fetch(`${BASE_URL}/api/v1/logout`, {
       method: "POST",
-      credentials: "include", //  clears cookie from backend
+      credentials: "include",
     });
   } catch (err) {
     console.error("Logout API error:", err);
@@ -93,4 +93,4 @@ export async function apiFetch(url, options = {}, retry = false) {
     console.error(" API FETCH ERROR:", err);
     throw err;
   }
-}
+} 
