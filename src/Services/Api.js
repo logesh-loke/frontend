@@ -90,7 +90,7 @@ export async function apiFetch(url, options = {}, retry = false) {
     return response;
 
   } catch (err) {
-    console.error(" Too Many Request. Try after 1 min:", err);
+    console.error(" API FETCH ERROR:", err);
     throw err;
   }
 }
