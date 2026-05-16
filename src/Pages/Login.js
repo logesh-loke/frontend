@@ -19,7 +19,7 @@ function Login() {
   const [loginLoading, setLoginLoading] = useState(false);
   const submittedRef = useRef(false);
 
-  // 🔁 RETRY FUNCTION
+  // RETRY FUNCTION
   async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
     try {
       const res = await fetch(url, options);
@@ -75,12 +75,12 @@ function Login() {
       const data = await res.json();
 
       if (data.success) {
-        // 🔐 Normalize role
+        //  Normalize role
         const role = (data.user.role || data.user.accessLevel || "")
           .toLowerCase()
           .trim();
 
-        // ✅ Store user with normalized role
+        // Store user with normalized role
         const userInfo = { ...data.user, role };
 
         localStorage.setItem("token", data.accessToken);
@@ -105,7 +105,7 @@ function Login() {
           }
         });
 
-        // 🔁 Redirect based on role
+        // Redirect based on role
         setTimeout(() => {
           if (role === "admin") {
             navigate("/user-profile");

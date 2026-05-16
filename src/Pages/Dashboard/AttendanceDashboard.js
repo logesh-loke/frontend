@@ -71,9 +71,7 @@ const AttendanceDashboard = () => {
     return "--";
   };
 
-  // ========================================
   // GET ALL DATES IN RANGE
-  // ========================================
   
   const getDatesInRange = (startDate, endDate) => {
     const dates = [];
@@ -87,9 +85,7 @@ const AttendanceDashboard = () => {
     return dates;
   };
 
-  // ========================================
   // LOAD LAST 30 DAYS DATA
-  // ========================================
 
   const loadHistory = async () => {
     try {
@@ -202,9 +198,7 @@ const AttendanceDashboard = () => {
     (i) => i.status?.toUpperCase() === "ABSENT"
   ).length;
 
-  // ========================================
   // FORMATTERS
-  // ========================================   
 
   const formatDate = (date) => {
     if (!date) return "--";
@@ -218,9 +212,8 @@ const AttendanceDashboard = () => {
       return "--";
     }
   };
-  // ========================================
+
   // GET WORKING HOURS DISPLAY
-  // ========================================
 
   const getWorkingHoursDisplay = (hours) => {
     if (!hours || hours === 0) return "--";
@@ -232,9 +225,7 @@ const AttendanceDashboard = () => {
     return `${minutes} min`;
   };
 
-  // ========================================
   // UI
-  // ========================================
 
   if (loading) {
     return (

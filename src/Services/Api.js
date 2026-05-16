@@ -32,7 +32,7 @@ export async function logoutUser() {
   try {
     await fetch(`${BASE_URL}/api/v1/logout`, {
       method: "POST",
-      credentials: "include", // 🔥 clears cookie from backend
+      credentials: "include", //  clears cookie from backend
     });
   } catch (err) {
     console.error("Logout API error:", err);
@@ -90,7 +90,7 @@ export async function apiFetch(url, options = {}, retry = false) {
     return response;
 
   } catch (err) {
-    console.error(" API FETCH ERROR:", err);
+    console.error(" Too Many Request. Try after 1 min:", err);
     throw err;
   }
 }
