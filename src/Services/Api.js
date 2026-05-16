@@ -2,9 +2,7 @@
 
 const BASE_URL = "http://localhost:8080";
 
-// ==========================
 // Refresh Token
-// ==========================
 async function refreshToken() {
   try {
     const res = await fetch(`${BASE_URL}/api/v1/refresh-token`, {
@@ -12,59 +10,29 @@ async function refreshToken() {
       credentials: "include",
     });
 
-    // Server Busy / Rate Limit
-    if (res.status === 429) {
-      return {
-        error: "SERVER_BUSY",
-      };
-    }
-
-    // Unauthorized
-    if (res.status === 401) {
-      return {
-        error: "UNAUTHORIZED",
-      };
-    }
-
-    // Other Errors
-    if (!res.ok) {
-      return {
-        error: "REFRESH_FAILED",
-      };
-    }
+    if (!res.ok) throw new Error("Refresh failed");
 
     const data = await res.json();
 
     if (!data?.accessToken) {
-      return {
-        error: "NO_TOKEN",
-      };
+      throw new Error("No access token received");
     }
 
-    // Save New Token
     localStorage.setItem("token", data.accessToken);
 
-    return {
-      accessToken: data.accessToken,
-    };
-
+    return data.accessToken;
   } catch (error) {
-    console.error("Refresh token error:", error);
-
-    return {
-      error: "NETWORK_ERROR",
-    };
+    console.error(" Refresh token error:", error);
+    return null;
   }
 }
 
-// ==========================
-// Logout User
-// ==========================
+// Logout (IMPORTANT)
 export async function logoutUser() {
   try {
     await fetch(`${BASE_URL}/api/v1/logout`, {
       method: "POST",
-      credentials: "include",
+      credentials: "include", //  clears cookie from backend
     });
   } catch (err) {
     console.error("Logout API error:", err);
@@ -76,9 +44,7 @@ export async function logoutUser() {
   window.location.href = "/login";
 }
 
-// ==========================
 // API Wrapper
-// ==========================
 export async function apiFetch(url, options = {}, retry = false) {
   try {
     const token = localStorage.getItem("token");
@@ -88,33 +54,24 @@ export async function apiFetch(url, options = {}, retry = false) {
       ...(options.headers || {}),
     };
 
-    // Add Token
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    // API Request
     let response = await fetch(BASE_URL + url, {
       ...options,
       headers,
       credentials: "include",
     });
 
-    // ==========================
-    // Token Expired
-    // ==========================
+    // Token expired → refresh once
     if (response.status === 401 && !retry) {
+      console.warn(" Token expired, refreshing...");
 
-      console.warn("Token expired. Refreshing...");
+      const newToken = await refreshToken();
 
-      const refresh = await refreshToken();
-
-      // ==========================
-      // Refresh Success
-      // ==========================
-      if (refresh?.accessToken) {
-
-        headers.Authorization = `Bearer ${refresh.accessToken}`;
+      if (newToken) {
+        headers.Authorization = `Bearer ${newToken}`;
 
         response = await fetch(BASE_URL + url, {
           ...options,
@@ -123,41 +80,9 @@ export async function apiFetch(url, options = {}, retry = false) {
         });
 
         return response;
-      }
-
-      // ==========================
-      // Server Busy
-      // ==========================
-      if (refresh?.error === "SERVER_BUSY") {
-
-        alert("Server busy. Please try again later.");
-
-        return response;
-      }
-
-      // ==========================
-      // Network Error
-      // ==========================
-      if (refresh?.error === "NETWORK_ERROR") {
-
-        alert("Network error. Check your internet connection.");
-
-        return response;
-      }
-
-      // ==========================
-      // Unauthorized
-      // ==========================
-      if (
-        refresh?.error === "UNAUTHORIZED" ||
-        refresh?.error === "REFRESH_FAILED" ||
-        refresh?.error === "NO_TOKEN"
-      ) {
-
-        console.error("Refresh failed. Logging out...");
-
+      } else {
+        console.error(" Refresh failed → logout");
         await logoutUser();
-
         return;
       }
     }
@@ -165,11 +90,7 @@ export async function apiFetch(url, options = {}, retry = false) {
     return response;
 
   } catch (err) {
-
-    console.error("API FETCH ERROR:", err);
-
-    alert("Something went wrong.");
-
+    console.error(" API FETCH ERROR:", err);
     throw err;
   }
 }
