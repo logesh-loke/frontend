@@ -67,14 +67,7 @@ export default function App() {
   return (
 
     <>
-      {/* TOAST */}
-      <ToastContainer
-        position="top-center"
-        autoClose={3000}
-        toastStyle={{
-          marginTop: "45vh"
-        }}/>
-
+    
       {/* ROUTES */}
       <Routes>
         {/* GUEST ROUTES*/}
