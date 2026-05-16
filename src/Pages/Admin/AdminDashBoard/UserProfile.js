@@ -10,7 +10,7 @@ import {
 import UserEdit from "./UserEdit";
 
 function AdminUsersTable() {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -258,7 +258,6 @@ function AdminUsersTable() {
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none appearance-none cursor-pointer bg-white"
               >
                 <option value="ALL">All Roles</option>
-                <option value="ADMIN">Admins</option>
                 <option value="USER">Users</option>
               </select>
             </div>
